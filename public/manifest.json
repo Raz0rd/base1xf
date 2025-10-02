@@ -1,0 +1,28 @@
+{
+  "name": "Recargas Jogo BR",
+  "short_name": "Recargas BR",
+  "description": "Ganhe seu desconto de recarga! Descubra oportunidades únicas de economizar em suas recargas de jogos.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#ef4444",
+  "background_color": "#ffffff",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "pt-BR",
+  "dir": "ltr"
+}
