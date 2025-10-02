@@ -58,10 +58,17 @@ export async function POST(request: NextRequest) {
     console.log("📊 [UTM PARAMS] FBCLID:", body.utmParams?.fbclid || 'N/A')
     console.log("📊 [UTM PARAMS] Todos os UTMs:", JSON.stringify(body.utmParams || {}, null, 2))
 
+    // Obter URL atual dinamicamente
+    const host = request.headers.get('host')
+    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const baseUrl = `${protocol}://${host}`
+    
+    console.log("🌐 [BlackCat] URL dinâmica detectada:", baseUrl)
+
     const blackcatPayload = {
       amount: body.amount,
       paymentMethod: "pix",
-      postbackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/webhook`,
+      postbackUrl: `${baseUrl}/api/webhook`,
       metadata: JSON.stringify({
         orderId: body.orderId || null,
         utmParams: body.utmParams || {}

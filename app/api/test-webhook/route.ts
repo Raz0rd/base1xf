@@ -58,7 +58,12 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Sending test webhook to /api/webhook")
 
     // Enviar para o webhook real
-    const webhookResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/webhook`, {
+    // Obter URL atual dinamicamente
+    const host = request.headers.get('host')
+    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const baseUrl = `${protocol}://${host}`
+    
+    const webhookResponse = await fetch(`${baseUrl}/api/webhook`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

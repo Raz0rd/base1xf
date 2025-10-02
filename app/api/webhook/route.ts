@@ -167,7 +167,12 @@ export async function POST(request: NextRequest) {
 
       // Registrar conversão de pagamento no analytics
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin-analytics`, {
+        // Obter URL atual dinamicamente
+        const host = request.headers.get('host')
+        const protocol = request.headers.get('x-forwarded-proto') || 'https'
+        const baseUrl = `${protocol}://${host}`
+        
+        await fetch(`${baseUrl}/api/admin-analytics`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 

@@ -50,7 +50,23 @@ export async function POST(request: NextRequest) {
           transactionId: webhookData.transactionId,
           amount: webhookData.amount,
           customerData: webhookData.customerData,
-          trackingParameters: webhookData.trackingParameters || {},
+          trackingParameters: {
+            src: null,
+            sck: null,
+            utm_source: null,
+            utm_campaign: null,
+            utm_medium: null,
+            utm_content: null,
+            utm_term: null,
+            xcod: null,
+            keyword: null,
+            device: null,
+            network: null,
+            gclid: null,
+            gad_source: null,
+            gbraid: null,
+            ...webhookData.trackingParameters
+          },
           createdAt: new Date().toISOString(),
           status: 'pending' as const
         }
@@ -58,6 +74,14 @@ export async function POST(request: NextRequest) {
         console.log("[v0] Payment Webhook - Using webhook data:", storedOrder)
       }
       
+      // Verificar se storedOrder não é null
+      if (!storedOrder) {
+        return NextResponse.json({
+          success: false,
+          error: "Unable to process payment - order data missing"
+        }, { status: 400 })
+      }
+
       // Atualizar status do pedido
       orderStorageService.updateOrderStatus(webhookData.orderId, "paid")
       
@@ -69,10 +93,10 @@ export async function POST(request: NextRequest) {
           orderId: webhookData.orderId,
           transactionId: webhookData.transactionId,
           amount: webhookData.amount,
-          email: storedOrder.customerData.email,
-          gclid: storedOrder.trackingParameters.gclid,
-          utm_source: storedOrder.trackingParameters.utm_source,
-          utm_campaign: storedOrder.trackingParameters.utm_campaign,
+          email: storedOrder.customerData?.email || 'N/A',
+          gclid: storedOrder.trackingParameters?.gclid || null,
+          utm_source: storedOrder.trackingParameters?.utm_source || null,
+          utm_campaign: storedOrder.trackingParameters?.utm_campaign || null,
           status: 'paid'
         }
       })
@@ -86,13 +110,18 @@ export async function POST(request: NextRequest) {
         status: "paid"
       }
 
+      // Obter URL atual dinamicamente (usado por UTMify e Ratoeira)
+      const host = request.headers.get('host')
+      const protocol = request.headers.get('x-forwarded-proto') || 'https'
+      const baseUrl = `${protocol}://${host}`
+
       // Enviar conversão para UTMify apenas se habilitado
       const utmifyEnabled = process.env.UTMIFY_ENABLED === 'true'
       if (utmifyEnabled) {
         try {
           console.log("[v0] Payment Webhook - Sending conversion to UTMify:", orderData)
           
-          const utmifyResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/send-to-utmify`, {
+          const utmifyResponse = await fetch(`${baseUrl}/api/send-to-utmify`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -123,7 +152,7 @@ export async function POST(request: NextRequest) {
         try {
           console.log('[v0] Payment Webhook - Sending conversion to Ratoeira ADS')
           
-          const ratoeiraResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ratoeira-conversion`, {
+          const ratoeiraResponse = await fetch(`${baseUrl}/api/ratoeira-conversion`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -131,15 +160,15 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
               orderId: webhookData.orderId,
               amount: webhookData.amount,
-              gclid: storedOrder.trackingParameters.gclid,
-              utm_source: storedOrder.trackingParameters.utm_source,
-              utm_campaign: storedOrder.trackingParameters.utm_campaign,
-              utm_medium: storedOrder.trackingParameters.utm_medium,
-              utm_term: storedOrder.trackingParameters.utm_term,
-              utm_content: storedOrder.trackingParameters.utm_content,
+              gclid: storedOrder?.trackingParameters?.gclid || null,
+              utm_source: storedOrder?.trackingParameters?.utm_source || null,
+              utm_campaign: storedOrder?.trackingParameters?.utm_campaign || null,
+              utm_medium: storedOrder?.trackingParameters?.utm_medium || null,
+              utm_term: storedOrder?.trackingParameters?.utm_term || null,
+              utm_content: storedOrder?.trackingParameters?.utm_content || null,
               customerData: {
-                name: storedOrder.customerData.name,
-                email: storedOrder.customerData.email
+                name: storedOrder?.customerData?.name || 'N/A',
+                email: storedOrder?.customerData?.email || 'N/A'
               }
             }),
           })
