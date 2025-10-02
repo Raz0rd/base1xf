@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
 
     const blackcatPayload = {
       amount: body.amount,
+      currency: "BRL",
       paymentMethod: "pix",
       postbackUrl: `${baseUrl}/api/webhook`,
       metadata: JSON.stringify({
-        orderId: body.orderId || null,
         utmParams: body.utmParams || {}
       }),
       items: [

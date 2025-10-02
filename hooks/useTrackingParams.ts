@@ -140,68 +140,8 @@ export const useTrackingParams = () => {
     fetchUserIP()
   }, [])
 
-  const generateOrderId = () => {
-    // Fallback para navegadores que não suportam crypto.randomUUID()
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      return crypto.randomUUID()
-    }
-    
-    // Fallback manual para mobile
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0
-      const v = c == 'x' ? r : (r & 0x3 | 0x8)
-      return v.toString(16)
-    })
-  }
-
-  const createOrderData = (
-    customerData: { name: string; email: string; phone: string; document?: string },
-    amount: number,
-    productName: string = 'Recarga'
-  ): OrderData => {
-    const orderId = generateOrderId()
-    const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
-    
-    return {
-      orderId,
-      platform: 'GlobalPay',
-      paymentMethod: 'pix',
-      status: 'waiting_payment',
-      createdAt: now,
-      approvedDate: null,
-      refundedAt: null,
-      customer: {
-        name: customerData.name,
-        email: customerData.email,
-        phone: customerData.phone.replace(/\D/g, ''),
-        document: customerData.document || '00000000000',
-        country: 'BR',
-        ip: userIP || '0.0.0.0'
-      },
-      products: [
-        {
-          id: generateOrderId(), // Usar a mesma função com fallback
-          name: productName,
-          planId: null,
-          planName: null,
-          quantity: 1,
-          priceInCents: Math.round(amount * 100)
-        }
-      ],
-      trackingParameters: trackingParams,
-      commission: {
-        totalPriceInCents: Math.round(amount * 100),
-        gatewayFeeInCents: Math.round(amount * 100 * 0.04), // 4% de taxa
-        userCommissionInCents: Math.round(amount * 100 * 0.96) // 96% para o usuário
-      },
-      isTest: process.env.NODE_ENV !== 'production'
-    }
-  }
-
   return {
     trackingParams,
-    userIP,
-    generateOrderId,
-    createOrderData
+    userIP
   }
 }

@@ -20,7 +20,6 @@ interface PixModalProps {
 }
 
 export default function PixModal({ isOpen, onClose, amount, customerData, utmParameters = {} }: PixModalProps) {
-  const { createOrderData } = useTrackingParams()
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState("")
   const [pixCode, setPixCode] = React.useState("")
@@ -87,16 +86,12 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
         throw new Error("Telefone deve ter 10 ou 11 dígitos")
       }
 
-      // Criar dados do pedido
-      const orderData = createOrderData(customerData, amount, 'Recarga')
-      setOrderData(orderData)
-      mobileDebug.log("PIX: Order data criado", { orderId: orderData.orderId })
-      mobileDebug.log("PIX: crypto.randomUUID disponível", { available: !!(typeof crypto !== 'undefined' && crypto.randomUUID) })
+      // Criar dados básicos (sem orderId - será gerado pelo BlackCat)
+      mobileDebug.log("PIX: Preparando dados para BlackCat")
 
-      // Payload para BlackCat (COM UTM params no metadata)
+      // Payload para BlackCat (SEM orderId - será gerado pelo BlackCat)
       const blackcatPayload = {
         amount: Math.round(amount * 100),
-        orderId: orderData.orderId,
         utmParams: finalUtmParams, // Incluir UTMs para salvar no metadata
         customer: {
           name: customerData.name,
@@ -159,10 +154,11 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
 
       if (data.transactionId) {
         mobileDebug.log("PIX: Transaction ID definido", data.transactionId)
+        setTransactionId(data.transactionId)
         
         // Salvar dados do pedido no storage para recuperar quando pagamento for confirmado
         const orderForStorage = {
-          orderId: orderData.orderId,
+          orderId: data.transactionId, // Usar transactionId como orderId
           transactionId: data.transactionId,
           amount: amount,
           status: 'pending' as const,
@@ -182,39 +178,7 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
 
       setPaymentStatus("pending")
       mobileDebug.log("PIX: Status definido como pending")
-
-      // Registrar que QR foi gerado (via API interna)
-      try {
-        // Conversão será registrada automaticamente pelo backend (generate-pix)
-        // Enviar para UTMify com status "pending"
-        try {
-          const utmifyResponse = await fetch('/api/send-to-utmify', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              orderId: orderData.orderId,
-              amount: amount,
-              status: 'pending',
-              customerData: customerData,
-              trackingParameters: finalUtmParams
-            })
-          })
-          
-          if (utmifyResponse.ok) {
-            const utmifyResult = await utmifyResponse.json()
-            mobileDebug.log(`PIX: UTMify notificado (pending) - ${utmifyResult.success ? 'Sucesso' : 'Erro'}`)
-          } else {
-            mobileDebug.error("PIX: Erro ao notificar UTMify (pending)")
-          }
-        } catch (utmifyError) {
-          mobileDebug.error("PIX: Erro na comunicação com UTMify", utmifyError)
-        }
-        
-      } catch (error) {
-        mobileDebug.error("PIX: Erro no tracking interno", error)
-      }
+      mobileDebug.log("PIX: QR Code gerado com sucesso - aguardando confirmação do BlackCat via webhook")
 
     } catch (error) {
       mobileDebug.error("PIX: Erro geral", error)

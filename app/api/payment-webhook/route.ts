@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
     
     console.log("[v0] Payment Webhook - Received data:", webhookData)
 
-    // Verificar se o pagamento foi aprovado
-    if (webhookData.status === "paid") {
-      console.log("[v0] Payment Webhook - Payment confirmed for order:", webhookData.orderId)
+    // Processar webhook para status "pending" e "paid"
+    if (webhookData.status === "paid" || webhookData.status === "pending") {
+      console.log(`[v0] Payment Webhook - Processing ${webhookData.status} status for order:`, webhookData.orderId)
       
       // Buscar dados do pedido no storage
       let storedOrder = orderStorageService.getOrder(webhookData.orderId)
@@ -83,12 +83,17 @@ export async function POST(request: NextRequest) {
       }
 
       // Atualizar status do pedido
-      orderStorageService.updateOrderStatus(webhookData.orderId, "paid")
+      orderStorageService.updateOrderStatus(webhookData.orderId, webhookData.status)
       
       // Log detalhado para admin
+      const logType = webhookData.status === "paid" ? 'order_paid' : 'webhook'
+      const logMessage = webhookData.status === "paid" ? 
+        `Pagamento confirmado - ID: ${webhookData.orderId}` : 
+        `Pagamento pendente - ID: ${webhookData.orderId}`
+      
       adminLogger.addLog({
-        type: 'order_paid',
-        message: `Pagamento confirmado - ID: ${webhookData.orderId}`,
+        type: logType,
+        message: logMessage,
         details: {
           orderId: webhookData.orderId,
           transactionId: webhookData.transactionId,
@@ -97,7 +102,7 @@ export async function POST(request: NextRequest) {
           gclid: storedOrder.trackingParameters?.gclid || null,
           utm_source: storedOrder.trackingParameters?.utm_source || null,
           utm_campaign: storedOrder.trackingParameters?.utm_campaign || null,
-          status: 'paid'
+          status: webhookData.status
         }
       })
       
@@ -107,7 +112,7 @@ export async function POST(request: NextRequest) {
         amount: storedOrder.amount,
         customerData: storedOrder.customerData,
         trackingParameters: storedOrder.trackingParameters,
-        status: "paid"
+        status: webhookData.status
       }
 
       // Obter URL atual dinamicamente (usado por UTMify e Ratoeira)
@@ -115,11 +120,11 @@ export async function POST(request: NextRequest) {
       const protocol = request.headers.get('x-forwarded-proto') || 'https'
       const baseUrl = `${protocol}://${host}`
 
-      // Enviar conversão para UTMify apenas se habilitado
+      // Enviar status para UTMify apenas se habilitado
       const utmifyEnabled = process.env.UTMIFY_ENABLED === 'true'
       if (utmifyEnabled) {
         try {
-          console.log("[v0] Payment Webhook - Sending conversion to UTMify:", orderData)
+          console.log(`[v0] Payment Webhook - Sending ${webhookData.status} status to UTMify:`, orderData)
           
           const utmifyResponse = await fetch(`${baseUrl}/api/send-to-utmify`, {
             method: "POST",
@@ -128,7 +133,7 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
               ...orderData,
-              status: "paid" // Status atualizado para pago
+              status: webhookData.status // Status real do webhook
             }),
           })
 
@@ -146,9 +151,9 @@ export async function POST(request: NextRequest) {
         console.log("[v0] Payment Webhook - UTMify disabled, skipping conversion")
       }
 
-      // Enviar evento de conversão para Ratoeira ADS apenas se habilitado
+      // Enviar evento de conversão para Ratoeira ADS apenas se habilitado E pagamento confirmado
       const ratoeiraEnabled = process.env.RATOEIRA_ENABLED === 'true'
-      if (ratoeiraEnabled) {
+      if (ratoeiraEnabled && webhookData.status === "paid") {
         try {
           console.log('[v0] Payment Webhook - Sending conversion to Ratoeira ADS')
           
@@ -189,8 +194,9 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: "Payment processed and conversion sent",
-        orderId: webhookData.orderId
+        message: `Payment status ${webhookData.status} processed successfully`,
+        orderId: webhookData.orderId,
+        status: webhookData.status
       })
     } else {
       console.log("[v0] Payment Webhook - Payment not confirmed, status:", webhookData.status)
