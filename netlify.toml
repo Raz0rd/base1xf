@@ -1,6 +1,8 @@
 [build]
-  command = "npm run build && npm run export"
-  publish = "out"
+  command = "npm run build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"
+
+# O plugin será adicionado automaticamente pelo Netlify quando detectar Next.js
