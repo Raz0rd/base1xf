@@ -4,17 +4,14 @@ export async function POST(request: Request) {
   try {
     const orderData = await request.json()
     
-    console.log("\n🎯 [UTMify API] Recebendo dados do pedido:")
-    console.log("📦 [UTMify API] Order ID:", orderData.orderId)
-    console.log("💰 [UTMify API] Amount:", orderData.commission?.totalPriceInCents / 100)
+    console.log("\n🎯 [UTMify API] Processando pedido para UTMify")
     console.log("📊 [UTMify API] Status:", orderData.status)
-    console.log("👤 [UTMify API] Customer:", {
-      name: orderData.customer?.name,
-      email: orderData.customer?.email,
-      phone: orderData.customer?.phone
-    })
-    console.log("🔗 [UTMify API] Tracking parameters:", orderData.trackingParameters)
-    console.log("🎯 [UTMify API] GCLID específico:", orderData.trackingParameters?.gclid)
+    console.log("💰 [UTMify API] Valor:", orderData.amount)
+    
+    // VALIDAÇÃO: Garantir que temos valor obrigatório
+    if (!orderData.amount || orderData.amount <= 0) {
+      throw new Error("Amount é obrigatório e deve ser maior que 0")
+    }
     
     // VALIDAÇÃO: Garantir que temos parâmetros UTM
     if (!orderData.trackingParameters || Object.keys(orderData.trackingParameters).length === 0) {
@@ -46,7 +43,7 @@ export async function POST(request: Request) {
           planId: null,
           planName: null,
           quantity: 1,
-          priceInCents: Math.round((orderData.amount || 18.99) * 100)
+          priceInCents: Math.round(orderData.amount * 100)
         }
       ],
       trackingParameters: {
@@ -66,18 +63,16 @@ export async function POST(request: Request) {
         gbraid: orderData.trackingParameters?.gbraid || null
       },
       commission: {
-        totalPriceInCents: Math.round((orderData.amount || 18.99) * 100),
-        gatewayFeeInCents: Math.round((orderData.amount || 18.99) * 100 * 0.04), // 4% taxa gateway
-        userCommissionInCents: Math.round((orderData.amount || 18.99) * 100 * 0.96) // 96% comissão
+        totalPriceInCents: Math.round(orderData.amount * 100),
+        gatewayFeeInCents: Math.round(orderData.amount * 100),
+        userCommissionInCents: Math.round(orderData.amount * 100)
       },
       isTest: process.env.UTMIFY_TEST_MODE === 'true'
     }
 
-    console.log("🎯 [UTMify API] FINAL UTMs sendo enviados para UTMify (PENDING):", JSON.stringify(utmifyPayload.trackingParameters, null, 2))
-    console.log("📤 [UTMify API] PAYLOAD COMPLETO:", JSON.stringify(utmifyPayload, null, 2))
-    console.log("🎯 [UTMify API] URL:", "https://api.utmify.com.br/api-credentials/orders")
-    console.log("🔑 [UTMify API] Token:", process.env.UTMIFY_API_TOKEN ? `Presente (${process.env.UTMIFY_API_TOKEN.substring(0, 8)}...)` : "Ausente")
-    console.log("🧪 [UTMify API] Test Mode:", process.env.UTMIFY_TEST_MODE)
+    console.log("🎯 [UTMify API] Enviando dados para UTMify...")
+    console.log("📊 [UTMify API] Status:", utmifyPayload.status)
+    console.log("💰 [UTMify API] Valor em centavos:", utmifyPayload.commission.totalPriceInCents)
 
     // Verificar se o token existe
     if (!process.env.UTMIFY_API_TOKEN) {
@@ -94,26 +89,17 @@ export async function POST(request: Request) {
       body: JSON.stringify(utmifyPayload),
     })
 
-    console.log("📡 [UTMify API] RESPONSE STATUS:", utmifyResponse.status)
-    console.log("📊 [UTMify API] RESPONSE HEADERS:", Object.fromEntries(utmifyResponse.headers.entries()))
-
     const data = await utmifyResponse.json()
     
     if (utmifyResponse.ok) {
-      console.log("✅ [UTMify API] SUCCESS RESPONSE:", JSON.stringify(data, null, 2))
+      console.log("✅ [UTMify API] Dados enviados com sucesso")
     } else {
-      console.error("❌ [UTMify API] ERROR RESPONSE:", {
-        status: utmifyResponse.status,
-        statusText: utmifyResponse.statusText,
-        body: data
-      })
+      console.error("❌ [UTMify API] Erro ao enviar dados:", utmifyResponse.status)
     }
 
     return NextResponse.json({
-      success: true,
-      utmifyResponse: data,
-      orderData,
-      testMode: process.env.UTMIFY_TEST_MODE === 'true'
+      success: utmifyResponse.ok,
+      message: utmifyResponse.ok ? "Dados enviados para UTMify" : "Erro ao enviar para UTMify"
     })
   } catch (error) {
     console.error("💥 [UTMify API] EXCEPTION:", error)
