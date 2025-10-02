@@ -46,7 +46,7 @@ export async function POST(request: Request) {
           planId: null,
           planName: null,
           quantity: 1,
-          priceInCents: orderData.amount || 1899
+          priceInCents: Math.round((orderData.amount || 18.99) * 100)
         }
       ],
       trackingParameters: {
@@ -66,9 +66,9 @@ export async function POST(request: Request) {
         gbraid: orderData.trackingParameters?.gbraid || null
       },
       commission: {
-        totalPriceInCents: orderData.amount || 1899,
-        gatewayFeeInCents: Math.round((orderData.amount || 1899) * 0.04), // 4% taxa gateway
-        userCommissionInCents: Math.round((orderData.amount || 1899) * 0.96) // 96% comissão
+        totalPriceInCents: Math.round((orderData.amount || 18.99) * 100),
+        gatewayFeeInCents: Math.round((orderData.amount || 18.99) * 100 * 0.04), // 4% taxa gateway
+        userCommissionInCents: Math.round((orderData.amount || 18.99) * 100 * 0.96) // 96% comissão
       },
       isTest: process.env.UTMIFY_TEST_MODE === 'true'
     }
