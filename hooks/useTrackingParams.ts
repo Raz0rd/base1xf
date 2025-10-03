@@ -43,6 +43,7 @@ export interface OrderData {
   createdAt: string
   approvedDate: string | null
   refundedAt: string | null
+  paidAt?: string | null
   customer: CustomerData
   products: ProductData[]
   trackingParameters: TrackingParameters

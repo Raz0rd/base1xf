@@ -193,12 +193,70 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
       console.log("🚨 Se não receber webhook em 30s, verificar configuração no BlackCat")
       console.groupEnd()
       
+      // Sistema de fallback - verificar status a cada 5 segundos
+      let fallbackInterval: NodeJS.Timeout
+      let fallbackAttempts = 0
+      const maxFallbackAttempts = 60 // 5 minutos (60 x 5s)
+
+      const startFallbackCheck = () => {
+        console.log("🔄 [FALLBACK] Iniciando verificação de status a cada 5 segundos")
+        
+        fallbackInterval = setInterval(async () => {
+          fallbackAttempts++
+          console.log(`🔄 [FALLBACK] Tentativa ${fallbackAttempts}/${maxFallbackAttempts} - Verificando status...`)
+
+          try {
+            const statusResponse = await fetch('/api/check-transaction-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ transactionId: data.transactionId })
+            })
+
+            const statusData = await statusResponse.json()
+            console.log(`🔄 [FALLBACK] Status atual:`, statusData.status)
+
+            if (statusData.status === 'paid') {
+              console.log("🎉 [FALLBACK] PAGAMENTO CONFIRMADO!")
+              setPaymentStatus("paid")
+              clearInterval(fallbackInterval)
+              
+              // Mostrar no console para o cliente
+              console.group("🎉 [PAGAMENTO CONFIRMADO] Via Fallback")
+              console.log("✅ Status:", "PAID")
+              console.log("📦 Transaction ID:", data.transactionId)
+              console.log("💰 Valor:", amount)
+              console.log("⏰ Confirmado em:", new Date().toLocaleString())
+              console.groupEnd()
+            } else if (fallbackAttempts >= maxFallbackAttempts) {
+              console.warn("⏰ [FALLBACK] Tempo limite atingido, parando verificações")
+              clearInterval(fallbackInterval)
+            }
+          } catch (error) {
+            console.error("❌ [FALLBACK] Erro ao verificar status:", error)
+          }
+        }, 5000) // A cada 5 segundos
+      }
+
+      // Iniciar fallback após 10 segundos (dar tempo para webhook chegar)
+      setTimeout(startFallbackCheck, 10000)
+
+      // Cleanup do interval quando modal fechar
+      const originalOnClose = onClose
+      const enhancedOnClose = () => {
+        if (fallbackInterval) {
+          clearInterval(fallbackInterval)
+          console.log("🔄 [FALLBACK] Verificações interrompidas - modal fechado")
+        }
+        originalOnClose()
+      }
+      
       // Aguardar 30 segundos e verificar se webhook foi recebido
       setTimeout(() => {
         console.group("⏰ [DEBUG WEBHOOK] Verificação após 30 segundos")
         console.log("🔍 Verificando se webhook foi recebido...")
         console.log("📦 Transaction ID para verificar:", data.transactionId)
         console.log("🚨 Se não apareceu log de webhook, BlackCat não está enviando!")
+        console.log("🔄 Fallback está rodando a cada 5s como backup")
         console.groupEnd()
       }, 30000)
 
