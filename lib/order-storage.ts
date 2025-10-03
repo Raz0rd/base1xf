@@ -16,6 +16,7 @@ interface OrderData {
   trackingParameters: TrackingParameters
   createdAt: string
   status: 'pending' | 'paid' | 'cancelled' | 'failed'
+  paidAt?: string
 }
 
 // Armazenamento em memória (temporário)

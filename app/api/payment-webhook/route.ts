@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
         storedOrder = {
           orderId: webhookData.orderId,
           transactionId: webhookData.transactionId,
-          amount: webhookData.amount,
+          amount: webhookData.amount || 0,
           customerData: webhookData.customerData,
           trackingParameters: {
             src: null,
