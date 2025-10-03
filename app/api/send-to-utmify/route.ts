@@ -8,8 +8,9 @@ export async function POST(request: Request) {
     console.log("📊 [UTMify API] Status:", orderData.status)
     console.log("💰 [UTMify API] Valor:", orderData.amount)
     
-    // VALIDAÇÃO: Garantir que temos valor obrigatório
-    if (!orderData.amount || orderData.amount <= 0) {
+    // VALIDAÇÃO: Garantir que temos valor obrigatório (em centavos)
+    const amountInCents = orderData.amount || orderData.products?.[0]?.priceInCents || 0
+    if (!amountInCents || amountInCents <= 0) {
       throw new Error("Amount é obrigatório e deve ser maior que 0")
     }
     
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
           planId: null,
           planName: null,
           quantity: 1,
-          priceInCents: Math.round(orderData.amount * 100)
+          priceInCents: amountInCents
         }
       ],
       trackingParameters: {
@@ -63,9 +64,9 @@ export async function POST(request: Request) {
         gbraid: orderData.trackingParameters?.gbraid || null
       },
       commission: {
-        totalPriceInCents: Math.round(orderData.amount * 100),
-        gatewayFeeInCents: Math.round(orderData.amount * 100),
-        userCommissionInCents: Math.round(orderData.amount * 100)
+        totalPriceInCents: amountInCents,
+        gatewayFeeInCents: amountInCents,
+        userCommissionInCents: amountInCents
       },
       isTest: process.env.UTMIFY_TEST_MODE === 'true'
     }

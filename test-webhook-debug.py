@@ -3,16 +3,16 @@ import requests
 import json
 
 def test_webhook_debug():
-    print("🧪 Testando webhook com ID REAL: 20927595")
+    print("🧪 Testando webhook com ID REAL: 20927763")
     
     # Dados com ID REAL que você gerou
     webhook_data = {
-        "id": "20927595",
+        "id": "20927763",
         "type": "transaction", 
         "url": "https://www.garena-recargadigital.vip/api/webhook",
-        "objectId": "20927595",
+        "objectId": "20927763",
         "data": {
-            "id": 20927595,
+            "id": 20927763,
             "tenantId": "ccaca050-bd57-4c10-a050-55d7f8e492e6",
             "companyId": 18498,
             "amount": 1999,  # R$ 19,99 em centavos

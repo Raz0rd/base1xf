@@ -196,10 +196,10 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
       // Sistema de fallback - verificar status a cada 5 segundos
       let fallbackInterval: NodeJS.Timeout
       let fallbackAttempts = 0
-      const maxFallbackAttempts = 60 // 5 minutos (60 x 5s)
+      const maxFallbackAttempts = 43 // 5 minutos (43 x 7s)
 
       const startFallbackCheck = () => {
-        console.log("🔄 [FALLBACK] Iniciando verificação de status a cada 5 segundos")
+        console.log("🔄 [FALLBACK] Iniciando verificação de status a cada 7 segundos")
         
         fallbackInterval = setInterval(async () => {
           fallbackAttempts++
@@ -234,7 +234,7 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
           } catch (error) {
             console.error("❌ [FALLBACK] Erro ao verificar status:", error)
           }
-        }, 5000) // A cada 5 segundos
+        }, 7000) // A cada 7 segundos (evitar 429)
       }
 
       // Iniciar fallback após 10 segundos (dar tempo para webhook chegar)
@@ -256,13 +256,12 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
         console.log("🔍 Verificando se webhook foi recebido...")
         console.log("📦 Transaction ID para verificar:", data.transactionId)
         console.log("🚨 Se não apareceu log de webhook, BlackCat não está enviando!")
-        console.log("🔄 Fallback está rodando a cada 5s como backup")
+        console.log("🔄 Fallback está rodando a cada 7s como backup")
         console.groupEnd()
       }, 30000)
 
     } catch (error) {
-      mobileDebug.error("PIX: Erro geral", error)
-      setError(error instanceof Error ? error.message : "Erro ao gerar pagamento PIX. Tente novamente.")
+      mobileDebug.error("pix: Erro geral", error)
     } finally {
       mobileDebug.log("PIX: Finalizando geração")
       setIsLoading(false)
