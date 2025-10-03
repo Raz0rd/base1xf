@@ -1708,7 +1708,7 @@ export default function HomePage() {
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 p-3 safe-area-bottom">
           <div className="text-center">
             <p className="text-xs text-gray-500">© Garena Online. Todos os direitos reservados.</p>
-            <p className="text-[10px] text-gray-400 mt-1">recargasjogobr.site</p>
+            <p className="text-[10px] text-gray-400 mt-1">Recarga Jogo BR</p>
           </div>
         </div>
 

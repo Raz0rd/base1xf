@@ -29,6 +29,7 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
   const [isCopied, setIsCopied] = React.useState(false)
   const [orderData, setOrderData] = React.useState<any>(null)
   const [isGenerating, setIsGenerating] = React.useState(false)
+  const [showProcessing, setShowProcessing] = React.useState(false)
 
   // UTM parameters para enviar apenas ao UTMify (não ao BlackCat)
   const finalUtmParams: TrackingParameters = {
@@ -218,6 +219,7 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
             if (statusData.status === 'paid') {
               console.log("🎉 [FALLBACK] PAGAMENTO CONFIRMADO!")
               setPaymentStatus("paid")
+              setShowProcessing(true)
               clearInterval(fallbackInterval)
               
               // Mostrar no console para o cliente
@@ -305,6 +307,7 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
       setError("")
       setIsCopied(false)
       setOrderData(null)
+      setShowProcessing(false)
     }
   }, [isOpen])
 
@@ -331,7 +334,27 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
             </div>
           )}
 
-          {error && (
+          {showProcessing && (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-500 mx-auto mb-6"></div>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold text-green-600">🎉 Pagamento Confirmado!</h3>
+                <p className="text-gray-600">Processando sua recarga...</p>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-green-700">
+                    ✅ Seu pagamento foi aprovado<br/>
+                    🔄 Aguarde enquanto processamos sua recarga<br/>
+                    ⏱️ Isso pode levar alguns minutos
+                  </p>
+                </div>
+                <div className="text-xs text-gray-500 mt-4">
+                  Transaction ID: {transactionId}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {error && !showProcessing && (
             <div className="text-center py-6">
               <p className="text-red-600 mb-4">{error}</p>
               <button
@@ -343,7 +366,7 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
             </div>
           )}
 
-          {pixCode && !isLoading && !error && (
+          {pixCode && !isLoading && !error && !showProcessing && (
             <div className="space-y-6">
               {qrCode && (
                 <div className="text-center">
