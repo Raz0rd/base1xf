@@ -27,11 +27,15 @@ export async function POST(request: NextRequest) {
 
     console.log("🧪 [SIMULATE WEBHOOK] Simulando webhook:", simulatedWebhookData)
 
-    // Chamar nosso próprio webhook
-    const webhookResponse = await fetch(`${request.nextUrl.origin}/api/payment-webhook`, {
+    // Chamar nosso próprio webhook usando URL absoluta
+    const webhookUrl = `https://${request.headers.get('host')}/api/payment-webhook`
+    console.log("🧪 [SIMULATE WEBHOOK] Chamando webhook:", webhookUrl)
+    
+    const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "User-Agent": "BlackCat-Simulator/1.0"
       },
       body: JSON.stringify(simulatedWebhookData),
     })
