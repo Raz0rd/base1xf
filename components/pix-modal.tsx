@@ -179,6 +179,16 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
       setPaymentStatus("pending")
       mobileDebug.log("PIX: Status definido como pending")
       mobileDebug.log("PIX: QR Code gerado com sucesso - aguardando confirmação do BlackCat via webhook")
+      
+      // DEBUG CLIENT-SIDE: Mostrar informações importantes no console
+      console.group("🔍 [DEBUG PIX] Informações do pagamento gerado")
+      console.log("📦 Transaction ID:", data.transactionId)
+      console.log("💰 Valor:", amount)
+      console.log("👤 Cliente:", customerData)
+      console.log("🎯 UTM Parameters:", finalUtmParams)
+      console.log("🔗 Webhook URL esperada:", `${window.location.origin}/api/payment-webhook`)
+      console.log("⏰ Timestamp:", new Date().toISOString())
+      console.groupEnd()
 
     } catch (error) {
       mobileDebug.error("PIX: Erro geral", error)

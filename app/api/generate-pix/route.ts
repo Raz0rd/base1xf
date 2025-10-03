@@ -1,4 +1,5 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { orderStorageService } from "@/lib/order-storage"
 
 // Função para obter o IP real do cliente
 function getClientIp(req: NextRequest): string {
@@ -149,6 +150,15 @@ export async function POST(request: NextRequest) {
     }
     
     console.log("🎉 [BlackCat] RESPOSTA NORMALIZADA:", JSON.stringify(normalizedResponse, null, 2))
+    
+    // DEBUG: Verificar se dados foram salvos no storage
+    console.log("🔍 [DEBUG] Verificando se dados foram salvos no storage...")
+    const savedOrder = orderStorageService.getOrder(transactionId)
+    if (savedOrder) {
+      console.log("✅ [DEBUG] Dados salvos no storage:", JSON.stringify(savedOrder, null, 2))
+    } else {
+      console.error("❌ [DEBUG] ERRO: Dados NÃO foram salvos no storage!")
+    }
     
     return NextResponse.json(normalizedResponse)
   } catch (error) {

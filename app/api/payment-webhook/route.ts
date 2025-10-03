@@ -18,9 +18,16 @@ interface PaymentWebhookData {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("🚨 [DEBUG WEBHOOK] Webhook foi chamado!")
+    console.log("🚨 [DEBUG WEBHOOK] URL:", request.url)
+    console.log("🚨 [DEBUG WEBHOOK] Method:", request.method)
+    console.log("🚨 [DEBUG WEBHOOK] Headers:", Object.fromEntries(request.headers.entries()))
+    
     const webhookData: PaymentWebhookData = await request.json()
     
     console.log("[v0] Payment Webhook - Received data:", webhookData)
+    console.log("🚨 [DEBUG WEBHOOK] Status recebido:", webhookData.status)
+    console.log("🚨 [DEBUG WEBHOOK] Order ID:", webhookData.orderId)
 
     // Processar webhook para status "pending" e "paid"
     if (webhookData.status === "paid" || webhookData.status === "pending") {
@@ -122,8 +129,12 @@ export async function POST(request: NextRequest) {
 
       // Enviar status para UTMify apenas se habilitado
       const utmifyEnabled = process.env.UTMIFY_ENABLED === 'true'
+      console.log("🚨 [DEBUG UTMify] UTMIFY_ENABLED:", process.env.UTMIFY_ENABLED)
+      console.log("🚨 [DEBUG UTMify] utmifyEnabled:", utmifyEnabled)
+      
       if (utmifyEnabled) {
         try {
+          console.log(`🚨 [DEBUG UTMify] Tentando enviar ${webhookData.status} para UTMify`)
           console.log(`[v0] Payment Webhook - Sending ${webhookData.status} status to UTMify:`, orderData)
           
           const utmifyResponse = await fetch(`${baseUrl}/api/send-to-utmify`, {
