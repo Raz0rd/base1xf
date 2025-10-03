@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
 
     if (isPaid || isWaitingPayment) {
       console.log(`[v0] Payment ${isPaid ? 'confirmed' : 'pending'} via BlackCat webhook:`, transactionId)
+      console.log(`[v0] 🚨 DEBUG: isPaid=${isPaid}, isWaitingPayment=${isWaitingPayment}, status=${status}`)
       
       // Recuperar tracking parameters do metadata OU do order storage
       let trackingParameters: Record<string, string | null> = {
@@ -190,9 +191,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Enviar para UTMify
+      const utmifyEnabled = process.env.UTMIFY_ENABLED === 'true'
+      console.log(`[v0] 🚨 DEBUG UTMify: ENABLED=${utmifyEnabled}, TOKEN=${!!process.env.UTMIFY_API_TOKEN}`)
+      
       try {
         const utmifyToken = process.env.UTMIFY_API_TOKEN
-        if (utmifyToken) {
+        if (utmifyToken && utmifyEnabled) {
           console.log(`[v0] 🎯 FINAL UTMs sendo enviados para UTMify (${isPaid ? 'PAID' : 'PENDING'}):`, JSON.stringify(trackingParameters, null, 2))
           console.log("[v0] Enviando dados para UTMify:", JSON.stringify(utmifyData, null, 2))
           
@@ -206,14 +210,16 @@ export async function POST(request: NextRequest) {
           })
 
           if (utmifyResponse.ok) {
-            console.log(`[v0] Successfully sent payment ${isPaid ? 'confirmation' : 'pending'} to UTMify`)
+            console.log(`[v0] ✅ Successfully sent payment ${isPaid ? 'confirmation' : 'pending'} to UTMify`)
           } else {
             const errorText = await utmifyResponse.text()
-            console.error("[v0] Failed to send to UTMify:", utmifyResponse.status, errorText)
+            console.error("[v0] ❌ Failed to send to UTMify:", utmifyResponse.status, errorText)
           }
+        } else {
+          console.warn(`[v0] ⚠️ UTMify não enviado: ENABLED=${utmifyEnabled}, TOKEN=${!!utmifyToken}`)
         }
       } catch (error) {
-        console.error("[v0] Error sending to UTMify:", error)
+        console.error("[v0] ❌ Error sending to UTMify:", error)
       }
 
       // Aqui você pode adicionar outras ações quando o pagamento for confirmado
