@@ -48,10 +48,11 @@ interface BlackCatWebhookPayload {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] BlackCat webhook received")
+    console.log("🚨🚨🚨 [WEBHOOK DEBUG] BlackCat webhook received! 🚨🚨🚨")
+    console.log("🚨🚨🚨 [WEBHOOK DEBUG] Timestamp:", new Date().toISOString())
     
     const body: BlackCatWebhookPayload = await request.json()
-    console.log("[v0] BlackCat webhook payload:", JSON.stringify(body, null, 2))
+    console.log("🚨🚨🚨 [WEBHOOK DEBUG] Payload recebido:", JSON.stringify(body, null, 2))
 
     // Verificar se é uma transação do BlackCat
     if (body.type !== "transaction" || !body.data) {
@@ -65,12 +66,14 @@ export async function POST(request: NextRequest) {
     const isPaid = status === 'paid' || status === 'approved'
     const isWaitingPayment = status === 'waiting_payment'
 
-    console.log("[v0] Transaction details:", {
+    console.log("🚨🚨🚨 [WEBHOOK DEBUG] Transaction details:", {
       id: transactionId,
       status,
       amount: transaction.amount,
       paymentMethod: transaction.paymentMethod,
-      customer: transaction.customer.name
+      customer: transaction.customer.name,
+      isPaid,
+      isWaitingPayment
     })
 
     if (isPaid || isWaitingPayment) {
