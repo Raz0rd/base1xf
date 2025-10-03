@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
       customer: transaction.customer.name
     })
 
-    if (isPaid) {
-      console.log("[v0] Payment confirmed via BlackCat webhook:", transactionId)
+    if (isPaid || isWaitingPayment) {
+      console.log(`[v0] Payment ${isPaid ? 'confirmed' : 'pending'} via BlackCat webhook:`, transactionId)
       
       // Recuperar tracking parameters do metadata OU do order storage
       let trackingParameters: Record<string, string | null> = {
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         orderId,
         platform: "GlobalPay",
         paymentMethod: "pix",
-        status: "paid",
+        status: isPaid ? "paid" : "waiting_payment",
         createdAt: new Date(transaction.createdAt).toISOString().replace('T', ' ').substring(0, 19),
         approvedDate: transaction.paidAt ? new Date(transaction.paidAt).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19),
         refundedAt: null,
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
       try {
         const utmifyToken = process.env.UTMIFY_API_TOKEN
         if (utmifyToken) {
-          console.log("[v0] 🎯 FINAL UTMs sendo enviados para UTMify (PAID):", JSON.stringify(trackingParameters, null, 2))
+          console.log(`[v0] 🎯 FINAL UTMs sendo enviados para UTMify (${isPaid ? 'PAID' : 'PENDING'}):`, JSON.stringify(trackingParameters, null, 2))
           console.log("[v0] Enviando dados para UTMify:", JSON.stringify(utmifyData, null, 2))
           
           const utmifyResponse = await fetch("https://api.utmify.com.br/api-credentials/orders", {
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
           })
 
           if (utmifyResponse.ok) {
-            console.log("[v0] Successfully sent payment confirmation to UTMify")
+            console.log(`[v0] Successfully sent payment ${isPaid ? 'confirmation' : 'pending'} to UTMify`)
           } else {
             const errorText = await utmifyResponse.text()
             console.error("[v0] Failed to send to UTMify:", utmifyResponse.status, errorText)
