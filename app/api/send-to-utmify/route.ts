@@ -79,13 +79,27 @@ export async function POST(request: Request) {
       throw new Error("UTMIFY_API_TOKEN não configurado no .env")
     }
 
+    // Obter URL da whitepage para o Referer
+    const whitepageUrl = process.env.UTMIFY_WHITEPAGE_URL;
+    
+    // Preparar headers com Referer da whitepage
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "x-api-token": process.env.UTMIFY_API_TOKEN
+    };
+    
+    // Adicionar Referer se whitepage URL estiver configurada
+    if (whitepageUrl) {
+      headers["Referer"] = whitepageUrl;
+      console.log("🔗 [UTMify API] Usando Referer:", whitepageUrl);
+    } else {
+      console.warn("⚠️ [UTMify API] UTMIFY_WHITEPAGE_URL não configurada - Referer não será enviado");
+    }
+
     // Enviar para UTMify com URL e headers corretos
     const utmifyResponse = await fetch("https://api.utmify.com.br/api-credentials/orders", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-token": process.env.UTMIFY_API_TOKEN
-      },
+      headers,
       body: JSON.stringify(utmifyPayload),
     })
 
