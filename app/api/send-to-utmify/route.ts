@@ -8,11 +8,23 @@ export async function POST(request: Request) {
     console.log("📊 [UTMify API] Status:", orderData.status)
     console.log("💰 [UTMify API] Valor:", orderData.amount)
     
-    // VALIDAÇÃO: Garantir que temos valor obrigatório (em centavos)
-    const amountInCents = orderData.amount || orderData.products?.[0]?.priceInCents || 0
+    // VALIDAÇÃO: Garantir que temos valor obrigatório
+    let amountInCents = 0
+    
+    if (orderData.amount) {
+      // Se amount > 1000, assumir que já está em centavos
+      // Se amount <= 1000, assumir que está em reais e converter
+      amountInCents = orderData.amount > 1000 ? orderData.amount : Math.round(orderData.amount * 100)
+    } else if (orderData.products?.[0]?.priceInCents) {
+      amountInCents = orderData.products[0].priceInCents
+    }
+    
     if (!amountInCents || amountInCents <= 0) {
       throw new Error("Amount é obrigatório e deve ser maior que 0")
     }
+    
+    console.log("💰 [UTMify API] Amount original:", orderData.amount)
+    console.log("💰 [UTMify API] Amount em centavos:", amountInCents)
     
     // VALIDAÇÃO: Garantir que temos parâmetros UTM
     if (!orderData.trackingParameters || Object.keys(orderData.trackingParameters).length === 0) {
