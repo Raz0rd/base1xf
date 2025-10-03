@@ -73,22 +73,29 @@ export default function HeadManager() {
   const isWhitepage = pathname === '/whitepage';
   const needsUtmifyScripts = (isOfferpage || isCheckout) && !isWhitepage;
   
+  // Obter Pixel ID do UTMify da variável de ambiente
+  const utmifyPixelId = process.env.NEXT_PUBLIC_PIXELID_UTMFY;
+  
   // Debug: Log quando UTMify scripts são carregados
   useEffect(() => {
     if (!mounted) return;
     
     if (needsUtmifyScripts) {
-      console.log(`[UTMify Scripts] Carregando scripts na página: ${pathname}`);
+      if (utmifyPixelId) {
+        console.log(`[UTMify Scripts] Carregando scripts na página: ${pathname} com Pixel ID: ${utmifyPixelId}`);
+      } else {
+        console.warn(`[UTMify Scripts] ATENÇÃO: NEXT_PUBLIC_PIXELID_UTMFY não configurado! Scripts não serão carregados.`);
+      }
     }
-  }, [mounted, pathname, needsUtmifyScripts]);
+  }, [mounted, pathname, needsUtmifyScripts, utmifyPixelId]);
   
-  const utmifyScripts = needsUtmifyScripts ? (
+  const utmifyScripts = needsUtmifyScripts && utmifyPixelId ? (
     <>
       <script 
         key="utmify-pixel"
         dangerouslySetInnerHTML={{
           __html: `
-            window.googlePixelId = "68dc83c27896633cb82ac1ed";
+            window.googlePixelId = "${utmifyPixelId}";
             var a = document.createElement("script");
             a.setAttribute("async", "");
             a.setAttribute("defer", "");
