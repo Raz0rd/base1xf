@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
           const utmifyData = {
             orderId: transactionId.toString(),
-            platform: "GlobalPay",
+            platform: "RecarGames",
             paymentMethod: "pix",
             status: "paid",
             createdAt: new Date(transactionData.createdAt).toISOString().replace('T', ' ').substring(0, 19),
@@ -102,11 +102,11 @@ export async function POST(request: NextRequest) {
               phone: transactionData.customer.phone,
               document: transactionData.customer.document.number,
               country: "BR",
-              ip: transactionData.ip
+              ip: transactionData.ip || "unknown"
             },
             products: [
               {
-                id: "recarga-free-fire",
+                id: `recarga-${transactionId}`,
                 name: "Recarga Free Fire",
                 planId: null,
                 planName: null,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
                 priceInCents: transactionData.amount
               }
             ],
-            trackingParameters,
+            trackingParameters: trackingParameters as any,
             commission: {
               totalPriceInCents: transactionData.amount,
               gatewayFeeInCents: transactionData.amount,

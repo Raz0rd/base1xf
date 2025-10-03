@@ -133,14 +133,14 @@ export async function POST(request: NextRequest) {
         console.error("[v0] Error parsing metadata:", error)
       }
       
-      // Criar dados para enviar para UTMify
+      // Criar dados para enviar para UTMify no formato EXATO da documentação
       const utmifyData = {
         orderId,
-        platform: "GlobalPay",
+        platform: "RecarGames",
         paymentMethod: "pix",
-        status: isPaid ? "paid" : "pending",
+        status: isPaid ? "paid" : "waiting_payment", // Status correto do UTMify
         createdAt: new Date(transaction.createdAt).toISOString().replace('T', ' ').substring(0, 19),
-        approvedDate: transaction.paidAt ? new Date(transaction.paidAt).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19),
+        approvedDate: isPaid && transaction.paidAt ? new Date(transaction.paidAt).toISOString().replace('T', ' ').substring(0, 19) : null,
         refundedAt: null,
         customer: {
           name: transaction.customer.name,
@@ -148,25 +148,40 @@ export async function POST(request: NextRequest) {
           phone: transaction.customer.phone,
           document: transaction.customer.document.number,
           country: "BR",
-          ip: transaction.ip
+          ip: transaction.ip || "unknown"
         },
         products: [
           {
-            id: Math.random().toString(36).substring(2, 15), // ID simples para mobile
-            name: "Recarga",
+            id: `recarga-${transactionId}`,
+            name: "Recarga Free Fire",
             planId: null,
             planName: null,
             quantity: 1,
             priceInCents: transaction.amount
           }
         ],
-        trackingParameters,
+        trackingParameters: {
+          src: trackingParameters.src,
+          sck: trackingParameters.sck,
+          utm_source: trackingParameters.utm_source,
+          utm_campaign: trackingParameters.utm_campaign,
+          utm_medium: trackingParameters.utm_medium,
+          utm_content: trackingParameters.utm_content,
+          utm_term: trackingParameters.utm_term,
+          gclid: trackingParameters.gclid,
+          xcod: trackingParameters.xcod,
+          keyword: trackingParameters.keyword,
+          device: trackingParameters.device,
+          network: trackingParameters.network,
+          gad_source: trackingParameters.gad_source,
+          gbraid: trackingParameters.gbraid
+        },
         commission: {
           totalPriceInCents: transaction.amount,
-          gatewayFeeInCents: Math.round(transaction.amount * 0.04),
-          userCommissionInCents: Math.round(transaction.amount * 0.96)
+          gatewayFeeInCents: transaction.amount,
+          userCommissionInCents: transaction.amount
         },
-        isTest: process.env.NODE_ENV !== 'production'
+        isTest: process.env.UTMIFY_TEST_MODE === 'true'
       }
 
       // Registrar conversão de pagamento no analytics
