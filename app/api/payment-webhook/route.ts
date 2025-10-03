@@ -2,11 +2,46 @@ import { NextRequest, NextResponse } from "next/server"
 import { orderStorageService } from "@/lib/order-storage"
 import { adminLogger } from "@/lib/admin-logger"
 
+// Interface para webhook do BlackCat (estrutura real)
+interface BlackCatWebhookData {
+  id: string
+  type: string
+  url: string
+  objectId: string
+  data: {
+    id: number
+    tenantId: string
+    companyId: number
+    amount: number
+    currency: string
+    paymentMethod: string
+    status: string
+    metadata: string
+    customer: {
+      id: number
+      name: string
+      email: string
+      phone: string
+      document: {
+        number: string
+        type: string
+      }
+    }
+    pix?: {
+      qrcode: string
+      expirationDate: string
+    }
+    createdAt: string
+    updatedAt: string
+  }
+}
+
+// Interface legacy (manter para compatibilidade)
 interface PaymentWebhookData {
-  transactionId: string
   orderId: string
-  status: "paid" | "pending" | "cancelled" | "failed"
-  amount: number
+  transactionId?: string
+  status: "pending" | "paid" | "cancelled" | "waiting_payment"
+  amount?: number
   customerData?: {
     name: string
     email: string
@@ -23,11 +58,65 @@ export async function POST(request: NextRequest) {
     console.log("🚨 [DEBUG WEBHOOK] Method:", request.method)
     console.log("🚨 [DEBUG WEBHOOK] Headers:", Object.fromEntries(request.headers.entries()))
     
-    const webhookData: PaymentWebhookData = await request.json()
+    const rawData = await request.json()
+    console.log("🚨 [DEBUG WEBHOOK] Raw data recebido:", JSON.stringify(rawData, null, 2))
     
-    console.log("[v0] Payment Webhook - Received data:", webhookData)
-    console.log("🚨 [DEBUG WEBHOOK] Status recebido:", webhookData.status)
-    console.log("🚨 [DEBUG WEBHOOK] Order ID:", webhookData.orderId)
+    // Detectar se é estrutura BlackCat ou legacy
+    let webhookData: PaymentWebhookData
+    let isBlackCatFormat = false
+    
+    if (rawData.type === 'transaction' && rawData.data) {
+      // Estrutura BlackCat
+      isBlackCatFormat = true
+      const blackcatData = rawData as BlackCatWebhookData
+      
+      console.log("🚨 [DEBUG WEBHOOK] Detectado formato BlackCat")
+      console.log("🚨 [DEBUG WEBHOOK] Transaction ID:", blackcatData.data.id)
+      console.log("🚨 [DEBUG WEBHOOK] Status:", blackcatData.data.status)
+      
+      // Parsear metadata para obter UTMs
+      let utmParams = {}
+      try {
+        const metadata = JSON.parse(blackcatData.data.metadata || '{}')
+        utmParams = metadata.utmParams || {}
+        console.log("🚨 [DEBUG WEBHOOK] UTMs do metadata:", utmParams)
+      } catch (e) {
+        console.warn("🚨 [DEBUG WEBHOOK] Erro ao parsear metadata:", e)
+      }
+      
+      // Mapear status BlackCat para nosso formato
+      let mappedStatus: "pending" | "paid" | "cancelled" | "waiting_payment" = "pending"
+      if (blackcatData.data.status === "waiting_payment") {
+        mappedStatus = "pending"
+      } else if (blackcatData.data.status === "paid") {
+        mappedStatus = "paid"
+      } else if (blackcatData.data.status === "cancelled") {
+        mappedStatus = "cancelled"
+      }
+      
+      // Converter para formato interno
+      webhookData = {
+        orderId: blackcatData.data.id.toString(),
+        transactionId: blackcatData.data.id.toString(),
+        status: mappedStatus,
+        amount: blackcatData.data.amount || 0,
+        customerData: {
+          name: blackcatData.data.customer.name,
+          email: blackcatData.data.customer.email,
+          phone: blackcatData.data.customer.phone,
+          document: blackcatData.data.customer.document.number
+        },
+        trackingParameters: utmParams as Record<string, string>
+      }
+    } else {
+      // Estrutura legacy
+      console.log("🚨 [DEBUG WEBHOOK] Detectado formato legacy")
+      webhookData = rawData as PaymentWebhookData
+    }
+    
+    console.log("[v0] Payment Webhook - Processed data:", webhookData)
+    console.log("🚨 [DEBUG WEBHOOK] Status processado:", webhookData.status)
+    console.log("🚨 [DEBUG WEBHOOK] Order ID processado:", webhookData.orderId)
 
     // Processar webhook para status "pending" e "paid"
     if (webhookData.status === "paid" || webhookData.status === "pending") {
