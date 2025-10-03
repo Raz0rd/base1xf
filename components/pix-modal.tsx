@@ -186,10 +186,10 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
       console.log("💰 Valor:", amount)
       console.log("👤 Cliente:", customerData)
       console.log("🎯 UTM Parameters:", finalUtmParams)
-      console.log("🔗 Webhook URL esperada:", `${window.location.origin}/api/payment-webhook`)
+      console.log("🔗 Webhook URL esperada:", `${window.location.origin}/api/webhook`)
       console.log("⏰ Timestamp:", new Date().toISOString())
       console.log("🚨 IMPORTANTE: BlackCat deve estar configurado para enviar webhook!")
-      console.log("🚨 URL do webhook no BlackCat:", `${window.location.origin}/api/payment-webhook`)
+      console.log("🚨 URL do webhook no BlackCat:", `${window.location.origin}/api/webhook`)
       console.log("🚨 Se não receber webhook em 30s, verificar configuração no BlackCat")
       console.groupEnd()
       
