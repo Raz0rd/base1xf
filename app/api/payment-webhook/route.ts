@@ -203,11 +203,20 @@ export async function POST(request: NextRequest) {
         console.log("[v0] Payment Webhook - Ratoeira ADS disabled, skipping conversion")
       }
 
+      // Enviar notificação para o cliente via Server-Sent Events ou WebSocket seria ideal,
+      // mas por simplicidade, vamos apenas logar detalhadamente
+      console.log("🎉 [WEBHOOK SUCCESS] Processamento completo!")
+      console.log("🎉 [WEBHOOK SUCCESS] Order ID:", webhookData.orderId)
+      console.log("🎉 [WEBHOOK SUCCESS] Status:", webhookData.status)
+      console.log("🎉 [WEBHOOK SUCCESS] UTMify enviado:", utmifyEnabled ? "SIM" : "NÃO")
+
       return NextResponse.json({
         success: true,
         message: `Payment status ${webhookData.status} processed successfully`,
         orderId: webhookData.orderId,
-        status: webhookData.status
+        status: webhookData.status,
+        utmifySent: utmifyEnabled,
+        timestamp: new Date().toISOString()
       })
     } else {
       console.log("[v0] Payment Webhook - Payment not confirmed, status:", webhookData.status)
