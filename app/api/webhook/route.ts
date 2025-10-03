@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         orderId,
         platform: "GlobalPay",
         paymentMethod: "pix",
-        status: isPaid ? "paid" : "waiting_payment",
+        status: isPaid ? "paid" : "pending",
         createdAt: new Date(transaction.createdAt).toISOString().replace('T', ' ').substring(0, 19),
         approvedDate: transaction.paidAt ? new Date(transaction.paidAt).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19),
         refundedAt: null,
