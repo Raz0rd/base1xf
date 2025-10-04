@@ -1,7 +1,8 @@
 [build]
-  command = "npm run build"
+  command = "npm ci && npm run build"
   publish = ".next"
 
 [build.environment]
-  NPM_FLAGS = "--version" # force npm usage
   NODE_VERSION = "18"
+  NPM_CONFIG_FUND = "false"
+  NPM_CONFIG_AUDIT = "false"
