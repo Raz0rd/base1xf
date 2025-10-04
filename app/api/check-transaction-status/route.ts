@@ -93,37 +93,15 @@ export async function POST(request: NextRequest) {
 
           const utmifyData = {
             orderId: transactionId.toString(),
-            platform: "RecarGames",
-            paymentMethod: "pix",
             status: "paid",
-            createdAt: new Date(transactionData.createdAt).toISOString().replace('T', ' ').substring(0, 19),
-            approvedDate: new Date(transactionData.paidAt).toISOString().replace('T', ' ').substring(0, 19),
-            refundedAt: null,
-            customer: {
+            amount: transactionData.amount,
+            customerData: {
               name: transactionData.customer.name,
               email: transactionData.customer.email,
               phone: transactionData.customer.phone,
-              document: transactionData.customer.document.number,
-              country: "BR",
-              ip: transactionData.ip || "unknown"
+              document: transactionData.customer.document.number
             },
-            products: [
-              {
-                id: `recarga-${transactionId}`,
-                name: "Recarga Free Fire",
-                planId: null,
-                planName: null,
-                quantity: 1,
-                priceInCents: transactionData.amount
-              }
-            ],
-            trackingParameters: trackingParameters as any,
-            commission: {
-              totalPriceInCents: transactionData.amount,
-              gatewayFeeInCents: transactionData.amount,
-              userCommissionInCents: transactionData.amount
-            },
-            isTest: process.env.UTMIFY_TEST_MODE === 'true'
+            trackingParameters: trackingParameters as any
           }
 
           // Obter URL atual dinamicamente
