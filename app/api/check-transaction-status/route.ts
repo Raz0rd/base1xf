@@ -60,9 +60,9 @@ export async function POST(request: NextRequest) {
     const isNowPaid = currentStatus === 'paid'
     const isWaitingPayment = currentStatus === 'waiting_payment'
 
-    // Se mudou para paid e ainda não processamos, processar agora
-    if (isNowPaid && (!storedOrder || storedOrder.status !== 'paid')) {
-      console.log(`[FALLBACK] Status mudou para PAID! Processando...`)
+    // Se status é paid, sempre processar e enviar para UTMify
+    if (isNowPaid) {
+      console.log(`[FALLBACK] Status é PAID! Processando e enviando para UTMify...`)
 
       // Recuperar UTMs do storage ou usar fallback
       let trackingParameters = {}
@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
       // Enviar para UTMify
       const utmifyEnabled = process.env.UTMIFY_ENABLED === 'true'
       const utmifyToken = process.env.UTMIFY_API_TOKEN
+      let utmifySuccess = false
       console.log(`[FALLBACK] 🔍 DEBUG UTMify: ENABLED=${utmifyEnabled}, TOKEN=${!!utmifyToken}`)
       
       if (utmifyEnabled && utmifyToken) {
@@ -137,6 +138,7 @@ export async function POST(request: NextRequest) {
 
           if (utmifyResponse.ok) {
             console.log(`[FALLBACK] ✅ UTMify notificado com sucesso (PAID)`)
+            utmifySuccess = true
           } else {
             console.error(`[FALLBACK] ❌ Erro ao notificar UTMify:`, utmifyResponse.status)
           }
@@ -156,7 +158,8 @@ export async function POST(request: NextRequest) {
           paidAt: transactionData.paidAt,
           customer: transactionData.customer.name
         },
-        utmifySent: utmifyEnabled
+        utmifySent: utmifySuccess,
+        utmifyPaidSent: utmifySuccess
       })
     }
 
