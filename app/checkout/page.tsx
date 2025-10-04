@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const [qrCodeImage, setQrCodeImage] = useState("")
   const [timeLeft, setTimeLeft] = useState(15 * 60) // 15 minutos em segundos
   const [timerActive, setTimerActive] = useState(false)
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'expired'>('pending')
 
   // Get URL parameters
   const itemType = searchParams.get("itemType") || "recharge"
@@ -281,6 +282,7 @@ export default function CheckoutPage() {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             setTimerActive(false)
+            setPaymentStatus('expired')
             return 0
           }
           return prev - 1
@@ -292,6 +294,44 @@ export default function CheckoutPage() {
       if (interval) clearInterval(interval)
     }
   }, [timerActive, timeLeft])
+
+  // Polling para verificar status do pagamento a cada 7 segundos
+  useEffect(() => {
+    let statusInterval: NodeJS.Timeout
+    
+    if (pixData && paymentStatus === 'pending' && timerActive) {
+      statusInterval = setInterval(async () => {
+        try {
+          const response = await fetch('/api/check-transaction-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transactionId: pixData.transactionId })
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            
+            if (data.success && data.status === 'paid') {
+              setPaymentStatus('paid')
+              setTimerActive(false)
+              
+              // Mostrar mensagem de sucesso
+              showToastMessage('🎉 Pagamento confirmado! Seus diamantes serão creditados em breve.', 'success')
+              
+              console.log('✅ Pagamento confirmado via polling!')
+            }
+          }
+        } catch (error) {
+          // Erro silencioso no polling
+          console.warn('Erro no polling de status:', error)
+        }
+      }, 7000) // Verificar a cada 7 segundos
+    }
+    
+    return () => {
+      if (statusInterval) clearInterval(statusInterval)
+    }
+  }, [pixData, paymentStatus, timerActive])
 
 
   // Formatar tempo para exibição (MM:SS)
@@ -603,6 +643,35 @@ export default function CheckoutPage() {
                     <p>Em caso de dúvidas entre em contato com o suporte.</p>
                   </div>
 
+                  {/* Status do Pagamento */}
+                  {paymentStatus === 'paid' && (
+                    <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-green-800">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="font-medium">🎉 Pagamento Confirmado!</span>
+                      </div>
+                      <p className="text-sm text-green-700 mt-1">
+                        Seus diamantes serão creditados na sua conta em alguns minutos.
+                      </p>
+                    </div>
+                  )}
+
+                  {paymentStatus === 'expired' && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-red-800">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <span className="font-medium">⏰ Tempo Expirado</span>
+                      </div>
+                      <p className="text-sm text-red-700 mt-1">
+                        O tempo para pagamento expirou. Gere um novo PIX para continuar.
+                      </p>
+                    </div>
+                  )}
+
 
                   {/* Botão Voltar */}
                   <button
@@ -613,14 +682,17 @@ export default function CheckoutPage() {
                       setQrCodeImage("")
                       setTimerActive(false)
                       setTimeLeft(15 * 60)
+                      setPaymentStatus('pending')
                     }}
                     className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors px-4 py-2 h-11 text-base font-bold w-full ${
-                      timeLeft === 0 
-                        ? 'bg-blue-500 text-white hover:bg-blue-600'
-                        : 'bg-gray-500 text-white hover:bg-gray-600'
+                      paymentStatus === 'paid'
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : timeLeft === 0 
+                          ? 'bg-blue-500 text-white hover:bg-blue-600'
+                          : 'bg-gray-500 text-white hover:bg-gray-600'
                     }`}
                   >
-                    {timeLeft === 0 ? 'Gerar Novo PIX' : 'Voltar'}
+                    {paymentStatus === 'paid' ? 'Finalizar' : timeLeft === 0 ? 'Gerar Novo PIX' : 'Voltar'}
                   </button>
                 </>
               ) : null}
