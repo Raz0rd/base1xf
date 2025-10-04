@@ -49,10 +49,6 @@ export default function HomePage() {
       alt: "Banner 1 - Promoção Especial de Recarga"
     },
     {
-      src: "/images/purchase-banner.png",
-      alt: "Centro de Recarga - Ganhe 100% de Bônus Com Nosso Evento Recarga em Dobro!"
-    },
-    {
       src: "/images/BANNER3.png",
       alt: "Recarga Segura e Rápida - Checkout Premium com Bônus Exclusivos!"
     },
@@ -206,8 +202,8 @@ export default function HomePage() {
     setLoginError("") // Limpar erro anterior
 
     try {
-      const apiUrl = `https://api.recargatop.sbs/api/data/br?uid=${playerId}&key=razord`
-      console.log("[v0] Calling API:", apiUrl)
+      const apiUrl = `/api/game-data?uid=${playerId}`
+      console.log("[v0] Calling internal API:", apiUrl)
 
       const response = await fetch(apiUrl)
       console.log("[v0] API Response status:", response.status)
@@ -215,23 +211,23 @@ export default function HomePage() {
       const data = await response.json()
       console.log("[v0] API Response data:", data)
 
-      if (response.ok && data) {
+      if (response.ok && data.success) {
         // Verifica se o login foi bem-sucedido
-        if (data.basicInfo && data.basicInfo.nickname) {
-          if (data.basicInfo.nickname === "LOGADO" || response.status !== 200) {
+        if (data.data && data.data.basicInfo && data.data.basicInfo.nickname) {
+          if (data.data.basicInfo.nickname === "LOGADO" || response.status !== 200) {
             console.log("[v0] Login failed - invalid credentials")
             setIsLoggedIn(false)
             setLoginError("Login inválido. Verifique seu ID de jogador.")
           } else {
             console.log("[v0] Login successful!")
             setIsLoggedIn(true)
-            setUserData(data.basicInfo)
+            setUserData(data.data.basicInfo)
             setLoginError("") // Limpar erro
             
             // Buscar informações do avatar se headPic estiver disponível
-            if (data.basicInfo.headPic) {
-              console.log("[v0] Fetching avatar info for headPic:", data.basicInfo.headPic)
-              await fetchAvatarInfo(data.basicInfo.headPic)
+            if (data.data.basicInfo.headPic) {
+              console.log("[v0] Fetching avatar info for headPic:", data.data.basicInfo.headPic)
+              await fetchAvatarInfo(data.data.basicInfo.headPic)
             }
           }
         } else {
@@ -242,7 +238,8 @@ export default function HomePage() {
       } else {
         console.log("[v0] API request failed")
         setIsLoggedIn(false)
-        setLoginError("Erro na conexão. Tente novamente.")
+        const errorMessage = data?.error || "Erro ao verificar ID do jogador. Tente novamente."
+        setLoginError(errorMessage)
       }
     } catch (error) {
       console.error("[v0] Erro ao fazer login:", error)
@@ -1154,9 +1151,7 @@ export default function HomePage() {
                   {/* Overlay para valores desabilitados */}
                   {isDisabled && (
                     <div className="absolute inset-0 bg-gray-200 bg-opacity-50 flex items-center justify-center">
-                      <span className="text-[8px] sm:text-[10px] text-gray-500 font-medium">
-                        Indisponível
-                      </span>
+                    
                     </div>
                   )}
                 </div>

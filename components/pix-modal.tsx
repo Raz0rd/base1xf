@@ -367,51 +367,74 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
           )}
 
           {pixCode && !isLoading && !error && !showProcessing && (
-            <div className="space-y-6">
+            <div className="flex w-full flex-col">
+              {/* Título */}
+              <div className="text-center text-lg font-medium text-gray-800 mb-4">Pague com Pix</div>
+              
+              {/* QR Code */}
               {qrCode && (
-                <div className="text-center">
+                <div className="my-3 flex h-[150px] w-full items-center justify-center">
                   <img 
                     src={qrCode} 
-                    alt="QR Code PIX" 
-                    className="mx-auto max-w-full h-auto rounded-lg border"
+                    alt="QR Code Pix" 
+                    width="150" 
+                    height="150" 
+                    className="rounded-lg"
                   />
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Código PIX (Copia e Cola)
-                </label>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={pixCode}
-                    readOnly
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-sm font-mono"
-                  />
-                  <button
-                    onClick={copyPixCode}
-                    className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 font-medium"
-                  >
-                    {isCopied ? <Check size={16} /> : <Copy size={16} />}
-                    {isCopied ? 'Copiado!' : 'Copiar Código PIX'}
-                  </button>
+              {/* Informações da empresa */}
+              <div className="text-center text-gray-500 text-sm mb-4">
+                R. GAMES<br/>
+                CNPJ: 06.077.548/0001-16
+              </div>
+
+              {/* Código PIX */}
+              <div className="mb-4 mt-3 select-all break-words rounded-md bg-gray-100 p-4 text-sm text-gray-800">
+                {pixCode}
+              </div>
+
+              {/* Botão Copiar */}
+              <button
+                onClick={copyPixCode}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors bg-red-500 text-white hover:bg-red-600 px-4 py-2 mb-6 h-11 text-base font-bold"
+              >
+                {isCopied ? <Check size={16} /> : <Copy size={16} />}
+                {isCopied ? 'Copiado!' : 'Copiar Código'}
+              </button>
+
+              {/* Timer/Alerta */}
+              {paymentStatus === "pending" && (
+                <div role="alert" className="relative rounded-lg border p-4 bg-blue-50 border-blue-200 text-left w-full mb-4">
+                  <div className="flex items-start gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 mt-0.5 flex-shrink-0">
+                      <path d="M5 22h14"></path>
+                      <path d="M5 2h14"></path>
+                      <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"></path>
+                      <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"></path>
+                    </svg>
+                    <div>
+                      <h5 className="mb-1 font-medium leading-none tracking-tight text-blue-800">Aguardando pagamento</h5>
+                      <div className="text-sm text-blue-700">
+                        Você tem tempo para pagar. Após o pagamento, os diamantes podem levar alguns minutos para serem creditados.
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="text-center text-sm text-gray-600">
-                <p>Valor: <span className="font-bold">R$ {amount.toFixed(2)}</span></p>
-                <p className="mt-2">Status: <span className="font-bold">{paymentStatus === "pending" ? "Aguardando pagamento" : "Pago"}</span></p>
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-bold text-blue-800 mb-2">Como pagar:</h3>
-                <ol className="text-sm text-blue-700 space-y-1">
-                  <li>1. Abra o app do seu banco</li>
-                  <li>2. Escolha a opção PIX</li>
-                  <li>3. Escaneie o QR Code ou cole o código</li>
-                  <li>4. Confirme o pagamento</li>
+              {/* Instruções */}
+              <div className="text-gray-500 text-sm space-y-4">
+                <p className="font-semibold">Para realizar o pagamento siga os passos abaixo:</p>
+                <ol className="list-decimal list-inside space-y-2 pl-2">
+                  <li>Abra o app ou o site da sua instituição financeira e selecione o Pix.</li>
+                  <li>Utilize as informações acima para realizar o pagamento.</li>
+                  <li>Revise as informações e pronto!</li>
                 </ol>
+                <p>Seu pedido está sendo processado pelo nosso parceiro BlackCat.</p>
+                <p>Você receberá seus diamantes após recebermos a confirmação do pagamento. Isso ocorre geralmente em alguns minutos após a realização do pagamento na sua instituição financeira.</p>
+                <p>Em caso de dúvidas entre em contato com o suporte.</p>
               </div>
             </div>
           )}

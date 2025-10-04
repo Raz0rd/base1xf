@@ -208,18 +208,17 @@ export async function POST(request: NextRequest) {
         console.error('[WEBHOOK] Erro ao registrar conversão de pagamento:', error)
       }
 
-      // Enviar para UTMify
+      // Enviar para UTMify se habilitado
       const utmifyEnabled = process.env.UTMIFY_ENABLED === 'true'
-      console.log(`[v0] 🚨 DEBUG UTMify: ENABLED=${utmifyEnabled}, TOKEN=${!!process.env.UTMIFY_API_TOKEN}`)
+      const utmifyToken = process.env.UTMIFY_API_TOKEN
+      console.log(`[v0] 🔍 DEBUG UTMify: ENABLED=${utmifyEnabled}, TOKEN=${!!utmifyToken}`)
       
       try {
-        const utmifyToken = process.env.UTMIFY_API_TOKEN
         if (utmifyToken && utmifyEnabled) {
-          console.log(`[v0] 🎯 FINAL UTMs sendo enviados para UTMify (${isPaid ? 'PAID' : 'PENDING'}):`, JSON.stringify(trackingParameters, null, 2))
-          console.log("[v0] Enviando dados para UTMify:", JSON.stringify(utmifyData, null, 2))
+          console.log(`[v0] 🎯FINAL UTMs being sent to UTMify (${isPaid ? 'PAID' : 'PENDING'}):`, JSON.stringify(trackingParameters, null, 2))
+          console.log("[v0] Sending data to UTMify:", JSON.stringify(utmifyData, null, 2))
           
           const utmifyResponse = await fetch("https://api.utmify.com.br/api-credentials/orders", {
-            method: "POST",
             headers: {
               "Content-Type": "application/json",
               "x-api-token": utmifyToken,

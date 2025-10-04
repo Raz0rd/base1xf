@@ -84,7 +84,10 @@ export async function POST(request: NextRequest) {
 
       // Enviar para UTMify
       const utmifyEnabled = process.env.UTMIFY_ENABLED === 'true'
-      if (utmifyEnabled) {
+      const utmifyToken = process.env.UTMIFY_API_TOKEN
+      console.log(`[FALLBACK] 🔍 DEBUG UTMify: ENABLED=${utmifyEnabled}, TOKEN=${!!utmifyToken}`)
+      
+      if (utmifyEnabled && utmifyToken) {
         try {
           console.log(`[FALLBACK] Enviando status PAID para UTMify`)
 
