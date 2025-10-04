@@ -3,6 +3,5 @@
   publish = ".next"
 
 [build.environment]
+  NPM_FLAGS = "--version" # force npm usage
   NODE_VERSION = "18"
-
-# O plugin será adicionado automaticamente pelo Netlify quando detectar Next.js
