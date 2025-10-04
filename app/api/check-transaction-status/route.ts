@@ -127,7 +127,11 @@ export async function POST(request: NextRequest) {
             isTest: process.env.UTMIFY_TEST_MODE === 'true'
           }
 
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+          // Detectar URL base automaticamente
+          const protocol = request.headers.get('x-forwarded-proto') || 'https'
+          const host = request.headers.get('host')
+          const baseUrl = `${protocol}://${host}`
+          
           // Usar a mesma API que usamos para pending
           const utmifyResponse = await fetch(`${baseUrl}/api/utmify-track`, {
             method: "POST",

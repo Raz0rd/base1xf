@@ -37,11 +37,11 @@ export default function HeadManager() {
           if (ratoeiraEnabled) {
             loadTrackingScripts();
           } else {
-            console.log('[v0] HeadManager - Ratoeira ADS disabled, skipping tracking scripts');
+            //console.log('[v0] HeadManager - Ratoeira ADS disabled, skipping tracking scripts');
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar configurações do cabeçalho:', error);
+        //console.error('Erro ao carregar configurações do cabeçalho:', error);
       }
     };
 
@@ -82,9 +82,9 @@ export default function HeadManager() {
     
     if (needsUtmifyScripts) {
       if (utmifyPixelId) {
-        console.log(`[UTMify Scripts] Carregando scripts na página: ${pathname} com Pixel ID: ${utmifyPixelId}`);
+        //console.log(`[UTMify Scripts] Carregando scripts na página: ${pathname} com Pixel ID: ${utmifyPixelId}`);
       } else {
-        console.warn(`[UTMify Scripts] ATENÇÃO: NEXT_PUBLIC_PIXELID_UTMFY não configurado! Scripts não serão carregados.`);
+        //console.warn(`[UTMify Scripts] ATENÇÃO: NEXT_PUBLIC_PIXELID_UTMFY não configurado! Scripts não serão carregados.`);
       }
     }
   }, [mounted, pathname, needsUtmifyScripts, utmifyPixelId]);

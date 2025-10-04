@@ -11,28 +11,80 @@ import HeadManager from '@/components/HeadManager';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false)
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
   const [showLeadMessage, setShowLeadMessage] = useState(false)
   const [leadMessageType, setLeadMessageType] = useState<"default" | "nao_quer_agora" | "nao_tem_interesse">("default")
   const [loginError, setLoginError] = useState("")
   const [showSocialError, setShowSocialError] = useState(false)
   const [showCouponModal, setShowCouponModal] = useState(false)
-  const [generatedCoupon, setGeneratedCoupon] = useState("")
-  const [couponCopied, setCouponCopied] = useState(false)
-  const [textAnswer, setTextAnswer] = useState("")
   const [showPurchasePage, setShowPurchasePage] = useState(true)
+  const [showOfferInfoModal, setShowOfferInfoModal] = useState(false)
+  const [selectedOfferInfo, setSelectedOfferInfo] = useState<{name: string, image: string, description: string} | null>(null)
+  const [textAnswer, setTextAnswer] = useState("")
   const [selectedValue, setSelectedValue] = useState<string | null>(null)
   const [playerId, setPlayerId] = useState("")
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showIllusoryLoading, setShowIllusoryLoading] = useState(false)
+  const [showTutorialModal, setShowTutorialModal] = useState(false)
   const [selectedRechargeValue, setSelectedRechargeValue] = useState<string | null>(null)
   const [selectedSpecialOffer, setSelectedSpecialOffer] = useState<string | null>(null)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("PIX")
   const [showExitMessage, setShowExitMessage] = useState(false)
   const [exitMessage, setExitMessage] = useState("")
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
   const [pendingDisqualifyAnswer, setPendingDisqualifyAnswer] = useState<string | null>(null)
+  const [selectedGame, setSelectedGame] = useState<'freefire' | 'deltaforce' | 'haikyu'>('freefire')
   
-  
+  // Configurações dinâmicas por jogo
+  const gameConfig = {
+    freefire: {
+      name: 'Free Fire',
+      banner: '/images/checkout-banner.webp',
+      icon: '/images/profile-icon.webp',
+      coinIcon: '/images/point.webp',
+      userIcon: '/images/profile-icon.webp',
+      rechargeValues: ["100", "310", "520", "1.060", "2.180", "5.600", "15.600"],
+      promotionalValues: ["1.060", "2.180", "5.600", "15.600"],
+      specialOffers: [
+        { id: 'semanal', name: 'Assinatura Semanal', image: '/images/semanal.png', description: 'Ganhe 60 diamantes agora e resgate 40 diamantes todos os dias no jogo, durante 7 dias! Você receberá 340 diamantes no total.' },
+        { id: 'mensal', name: 'Assinatura Mensal', image: '/images/mensal.png', description: 'Ganhe 300 diamantes agora e resgate 50 diamantes todos os dias no jogo, durante 30 dias! Você receberá 1800 diamantes no total.' },
+        { id: 'booyah', name: 'Passe Booyah Premium Plus', image: '/images/boyahplus.png', description: 'Ganhe todos os privilégios e recompensas do Booyah Pass Premium + recompensas exclusivas + 50 níveis do Booyah Pass instantaneamente.' },
+        { id: 'nivel', name: 'Passe de Nível', image: '/images/passe-nivel.webp', description: 'Avance de nível e desbloqueie recompensas incríveis, incluindo skins exclusivas e diamantes.' }
+      ]
+    },
+    deltaforce: {
+      name: 'Delta Force',
+      banner: '/images/backgroundDelta.jpg',
+      icon: '/images/delta-force-icon.webp',
+      coinIcon: '/images/IconeCoinsDF.png',
+      userIcon: '/images/iconeusuarioDeltaForce.png',
+      rechargeValues: ["60", "300", "680", "1.280", "3.280", "6.480"],
+      promotionalValues: ["680", "1.280", "3.280", "6.480"], // Todos com coins em dobro
+      specialOffers: [
+        { id: 'genesis', name: 'Black Hawk Down - Gênesis', image: '/images/Black Hawk Down - Gênesis.png', description: 'Limitado a 1 compra por conta.' },
+        { id: 'reinvencao', name: 'Black Hawk Down - Reinvenção', image: '/images/Black Hawk Down - Reinvenção.png', description: 'Limitado a 1 compra por conta.' },
+        { id: 'mare', name: 'Suprimentos de Maré', image: '/images/Suprimentos de Maré.png', description: 'Limitado a 1 compra por conta.' },
+        { id: 'mare-avancado', name: 'Suprimentos de Maré - Avançado', image: '/images/Suprimentos de Maré - Avançado.png', description: 'Limitado a 1 compra por conta.' }
+      ]
+    },
+    haikyu: {
+      name: 'HAIKYU!! FLY HIGH',
+      banner: '/images/backgroundHiuki.jpg',
+      icon: '/images/HAIKIU FLY HIGH.png',
+      coinIcon: '/images/iconCoinHaikyu.png',
+      userIcon: '/images/HAIKIU FLY HIGH.png',
+      rechargeValues: ["60", "300", "680", "1.280", "3.280", "6.480"],
+      promotionalValues: ["680", "1.280", "3.280"],
+      specialOffers: [
+        { id: 'haikyu1', name: 'Especial de Recrutar Ultra I', image: '/images/haikiuEspecial1.png', description: 'Bilhete de Recrutar Ultra x1，Diamantes Estelares x200' },
+        { id: 'haikyu2', name: 'Especial de Recrutar Ultra II', image: '/images/HaikiuEspecial2.png', description: 'Bilhete de Recrutar Ultra x5，Diamantes Estelares x300' },
+        { id: 'haikyu3', name: 'Especial de Recrutar Ultra III', image: '/images/HaikiuEspecial3.png', description: 'Bilhete de Recrutar Ultra x5，Diamantes Estelares x500' },
+        { id: 'haikyu4', name: 'Especial de Recrutar Ultra IV', image: '/images/HaikiuEspecial4.png', description: 'Bilhete de Recrutar Ultra x10，Diamantes Estelares x500' }
+      ]
+    }
+  }
+
+  const currentConfig = gameConfig[selectedGame]
 
   const router = useRouter()
   const { getUtmObject } = useUtmParams()
@@ -144,14 +196,40 @@ export default function HomePage() {
   const calculatePrice = (diamonds: string): { price: number; bonus: number } => {
     const diamondCount = Number.parseInt(diamonds.replace(".", "").replace(",", "")) // Handle both '.' and ',' as thousand separators
 
+    // Preços específicos por jogo
+    if (selectedGame === 'deltaforce') {
+      const priceMap: { [key: number]: { price: number; bonus: number } } = {
+        60: { price: 5.99, bonus: 0 },
+        300: { price: 14.99, bonus: 0 },
+        680: { price: 24.99, bonus: 680 },     // COINS EM DOBRO
+        1280: { price: 37.99, bonus: 1280 },   // COINS EM DOBRO
+        3280: { price: 97.99, bonus: 3280 },   // COINS EM DOBRO
+        6480: { price: 189.99, bonus: 6480 },  // COINS EM DOBRO
+      }
+      return priceMap[diamondCount] || { price: 0, bonus: 0 }
+    }
+
+    if (selectedGame === 'haikyu') {
+      const priceMap: { [key: number]: { price: number; bonus: number } } = {
+        60: { price: 5.99, bonus: 0 },
+        300: { price: 14.99, bonus: 0 },
+        680: { price: 24.99, bonus: 680 },    // COINS EM DOBRO
+        1280: { price: 37.99, bonus: 1280 },  // COINS EM DOBRO
+        3280: { price: 97.99, bonus: 3280 },  // COINS EM DOBRO
+        6480: { price: 189.99, bonus: 0 },
+      }
+      return priceMap[diamondCount] || { price: 0, bonus: 0 }
+    }
+
+    // Free Fire (padrão)
     const priceMap: { [key: number]: { price: number; bonus: number } } = {
       100: { price: 6.0, bonus: 20 },
       310: { price: 10.99, bonus: 62 },
       520: { price: 14.9, bonus: 104 },
-      1060: { price: 19.99, bonus: 212 },
-      2180: { price: 24.8, bonus: 436 },
-      5600: { price: 34.9, bonus: 1120 },
-      15600: { price: 87.8, bonus: 3120 },
+      1060: { price: 19.99, bonus: 1060 },   // DOBRO
+      2180: { price: 24.8, bonus: 2180 },    // DOBRO
+      5600: { price: 34.9, bonus: 5600 },    // DOBRO
+      15600: { price: 87.8, bonus: 15600 },  // DOBRO
     }
 
     return priceMap[diamondCount] || { price: 0, bonus: 0 }
@@ -159,16 +237,46 @@ export default function HomePage() {
 
   const getSpecialOfferPrice = (offer: string): number => {
     const priceMap: { [key: string]: number } = {
+      // Free Fire
       "Assinatura Semanal": 14.99,
       "Assinatura Mensal": 44.99,
-      "Passe Booyah": 11.99,
+      "Passe Booyah Premium Plus": 11.99,
       "Passe de Nível": 44.99,
+      // Delta Force
+      "Black Hawk Down - Gênesis": 25.44,
+      "Black Hawk Down - Reinvenção": 18.50,
+      "Suprimentos de Maré": 13.99,
+      "Suprimentos de Maré - Avançado": 12.50,
+      // Haikyu
+      "Especial de Recrutar Ultra I": 15.99,
+      "Especial de Recrutar Ultra II": 25.50,
+      "Especial de Recrutar Ultra III": 52.11,
+      "Especial de Recrutar Ultra IV": 77.30,
     }
     return priceMap[offer] || 0
   }
 
+  const getSpecialOfferBonus = (offer: string): number => {
+    const bonusMap: { [key: string]: number } = {
+      // Haikyu - Diamantes Estelares
+      "Especial de Recrutar Ultra I": 200,
+      "Especial de Recrutar Ultra II": 300,
+      "Especial de Recrutar Ultra III": 500,
+      "Especial de Recrutar Ultra IV": 500,
+      // Delta Force - Coins
+      "Black Hawk Down - Gênesis": 300,
+      "Black Hawk Down - Reinvenção": 300,
+      "Suprimentos de Maré": 300,
+      "Suprimentos de Maré - Avançado": 300,
+    }
+    return bonusMap[offer] || 0
+  }
+
   const [userData, setUserData] = useState<any>(null)
   const [avatarInfo, setAvatarInfo] = useState<any>(null)
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
+  const [couponCopied, setCouponCopied] = useState(false)
+  const [generatedCoupon, setGeneratedCoupon] = useState("PROMO5OFF")
 
   // Função para buscar informações do avatar
   const fetchAvatarInfo = async (headPicId: number) => {
@@ -192,51 +300,54 @@ export default function HomePage() {
     e.preventDefault()
 
     if (!playerId.trim()) {
-      console.log("[v0] Player ID is empty")
       setLoginError("Por favor, insira um ID de jogador válido.")
       return
     }
 
-    console.log("[v0] Starting login process with ID:", playerId)
     setIsLoading(true)
-    setLoginError("") // Limpar erro anterior
+    setLoginError("")
 
+    // Login simplificado para Delta Force e Haikyu com loading ilusório
+    if (selectedGame === 'deltaforce' || selectedGame === 'haikyu') {
+      setShowIllusoryLoading(true)
+      
+      // Simular loading de 1.5 segundos
+      setTimeout(() => {
+        setIsLoggedIn(true)
+        setUserData(null)
+        setLoginError("")
+        setIsLoading(false)
+        setShowIllusoryLoading(false)
+      }, 1500)
+      return
+    }
+
+    // Login normal para Free Fire
     try {
       const apiUrl = `/api/game-data?uid=${playerId}`
-      console.log("[v0] Calling internal API:", apiUrl)
-
       const response = await fetch(apiUrl)
-      console.log("[v0] API Response status:", response.status)
-
       const data = await response.json()
-      console.log("[v0] API Response data:", data)
 
       if (response.ok && data.success) {
-        // Verifica se o login foi bem-sucedido
         if (data.data && data.data.basicInfo && data.data.basicInfo.nickname) {
           if (data.data.basicInfo.nickname === "LOGADO" || response.status !== 200) {
-            console.log("[v0] Login failed - invalid credentials")
             setIsLoggedIn(false)
             setLoginError("Login inválido. Verifique seu ID de jogador.")
           } else {
-            console.log("[v0] Login successful!")
             setIsLoggedIn(true)
             setUserData(data.data.basicInfo)
-            setLoginError("") // Limpar erro
+            setLoginError("")
+            localStorage.setItem('userData', JSON.stringify(data.data.basicInfo))
             
-            // Buscar informações do avatar se headPic estiver disponível
             if (data.data.basicInfo.headPic) {
-              console.log("[v0] Fetching avatar info for headPic:", data.data.basicInfo.headPic)
               await fetchAvatarInfo(data.data.basicInfo.headPic)
             }
           }
         } else {
-          console.log("[v0] Login failed - invalid response format")
           setIsLoggedIn(false)
           setLoginError("Resposta inválida do servidor. Tente novamente.")
         }
       } else {
-        console.log("[v0] API request failed")
         setIsLoggedIn(false)
         const errorMessage = data?.error || "Erro ao verificar ID do jogador. Tente novamente."
         setLoginError(errorMessage)
@@ -247,7 +358,6 @@ export default function HomePage() {
       setLoginError("Erro de conexão. Verifique sua internet e tente novamente.")
     } finally {
       setIsLoading(false)
-      console.log("[v0] Login process finished")
     }
   }
 
@@ -270,7 +380,7 @@ export default function HomePage() {
     // Marcar que o usuário já passou pelo processo
     localStorage.setItem("user_visited", "true")
     
-    console.log("Lead salvo:", leadData)
+    //console.log("Lead salvo:", leadData)
   }
 
 
@@ -284,7 +394,7 @@ export default function HomePage() {
 
   // Função para lidar com login social
   const handleSocialLogin = (platform: string) => {
-    console.log(`Tentativa de login com ${platform}`)
+    //console.log(`Tentativa de login com ${platform}`)
     setShowSocialError(true)
   }
 
@@ -313,13 +423,15 @@ export default function HomePage() {
     const utmParams = getUtmObject()
 
     if (selectedRechargeValue) {
-      const price = calculatePrice(selectedRechargeValue).price
+      const priceData = calculatePrice(selectedRechargeValue)
       const params = new URLSearchParams({
         type: "recharge",
         value: selectedRechargeValue,
-        price: price.toString(),
+        price: priceData.price.toString(),
+        bonus: priceData.bonus.toString(),
         playerId: playerId,
-        payment: "PIX"
+        payment: "PIX",
+        app: selectedGame === 'deltaforce' ? '100157' : selectedGame === 'haikyu' ? 'haikyu' : '100067'
       })
 
       // Adicionar parâmetros UTM individualmente
@@ -329,18 +441,21 @@ export default function HomePage() {
         }
       })
 
-      console.log('[v0] UTM params being passed to checkout:', utmParams)
-      console.log('[v0] Final checkout URL:', `/checkout?${params.toString()}`)
+      //console.log('[v0] UTM params being passed to checkout:', utmParams)
+      //console.log('[v0] Final checkout URL:', `/checkout?${params.toString()}`)
       
       router.push(`/checkout?${params.toString()}`)
     } else if (selectedSpecialOffer) {
       const price = getSpecialOfferPrice(selectedSpecialOffer)
+      const bonus = getSpecialOfferBonus(selectedSpecialOffer)
       const params = new URLSearchParams({
         type: "special",
         value: selectedSpecialOffer,
         price: price.toString(),
+        bonus: bonus.toString(),
         playerId: playerId,
-        payment: "PIX"
+        payment: "PIX",
+        app: selectedGame === 'deltaforce' ? '100157' : selectedGame === 'haikyu' ? 'haikyu' : '100067'
       })
 
       // Adicionar parâmetros UTM individualmente
@@ -350,8 +465,8 @@ export default function HomePage() {
         }
       })
 
-      console.log('[v0] UTM params being passed to checkout:', utmParams)
-      console.log('[v0] Final checkout URL:', `/checkout?${params.toString()}`)
+      //console.log('[v0] UTM params being passed to checkout:', utmParams)
+      //console.log('[v0] Final checkout URL:', `/checkout?${params.toString()}`)
 
       router.push(`/checkout?${params.toString()}`)
     }
@@ -459,8 +574,8 @@ export default function HomePage() {
             </div>
             <div className="w-8 h-8 sm:w-10 sm:h-10">
               <img
-                src="/images/profile-icon.webp"
-                alt="Profile Icon"
+                src={currentConfig.userIcon}
+                alt={`${currentConfig.name} Icon`}
                 className="w-full h-full object-cover rounded-full"
               />
             </div>
@@ -468,7 +583,7 @@ export default function HomePage() {
         </div>
 
         {/* Conteúdo Principal com padding para header e footer */}
-        <div className="flex-1 pt-20 pb-20 overflow-y-auto">
+        <div className="flex-1 pt-20 pb-32 overflow-y-auto">
 
         {/* Hero Banner com Carousel */}
         <div className="relative overflow-hidden block leading-none carousel-container">
@@ -484,13 +599,6 @@ export default function HomePage() {
                   className="w-full h-auto object-cover block align-top"
                   style={{ verticalAlign: 'top' }}
                 />
-                {/* Overlay com linhas pretas superior e inferior */}
-                <div className="absolute inset-0 pointer-events-none">
-                  {/* Linha superior */}
-                  <div className="absolute top-0 left-0 right-0 h-[5px] bg-black"></div>
-                  {/* Linha inferior */}
-                  <div className="absolute bottom-0 left-0 right-0 h-[5px] bg-black"></div>
-                </div>
               </div>
             ))}
           </div>
@@ -693,14 +801,23 @@ export default function HomePage() {
             <div
               className="cursor-pointer outline-none group"
               role="radio"
-              aria-checked="true"
-              data-state="checked"
+              aria-checked={selectedGame === 'freefire'}
+              data-state={selectedGame === 'freefire' ? 'checked' : 'unchecked'}
               tabIndex={0}
+              onClick={() => {
+                setSelectedGame('freefire')
+                setIsLoggedIn(false)
+                setPlayerId("")
+                setUserData(null)
+                router.push('/?app=100067')
+              }}
             >
               <div className="mx-auto max-w-[60px] sm:max-w-[70px] md:max-w-[105px]">
                 <div className="mb-1 px-[2px] sm:px-[3px] md:mb-2 md:px-2">
                   <div className="relative">
-                    <div className="relative overflow-hidden rounded-[25%] border-2 sm:border-[3px] md:border-4 transition-colors border-destructive">
+                    <div className={`relative overflow-hidden rounded-[25%] border-2 sm:border-[3px] md:border-4 transition-colors ${
+                      selectedGame === 'freefire' ? 'border-destructive' : 'border-gray-300'
+                    }`}>
                       <div className="relative pt-[100%]">
                         <img
                           alt="Free Fire"
@@ -722,14 +839,23 @@ export default function HomePage() {
             <div
               className="cursor-pointer outline-none group"
               role="radio"
-              aria-checked="false"
-              data-state="unchecked"
-              tabIndex={-1}
+              aria-checked={selectedGame === 'deltaforce'}
+              data-state={selectedGame === 'deltaforce' ? 'checked' : 'unchecked'}
+              tabIndex={0}
+              onClick={() => {
+                setSelectedGame('deltaforce')
+                setIsLoggedIn(false)
+                setPlayerId("")
+                setUserData(null)
+                router.push('/?app=100157')
+              }}
             >
               <div className="mx-auto max-w-[60px] sm:max-w-[70px] md:max-w-[105px]">
                 <div className="mb-1 px-[2px] sm:px-[3px] md:mb-2 md:px-2">
                   <div className="relative">
-                    <div className="relative overflow-hidden rounded-[25%] border-2 sm:border-[3px] md:border-4 transition-colors border-gray-300">
+                    <div className={`relative overflow-hidden rounded-[25%] border-2 sm:border-[3px] md:border-4 transition-colors ${
+                      selectedGame === 'deltaforce' ? 'border-destructive' : 'border-gray-300'
+                    }`}>
                       <div className="relative pt-[100%]">
                         <img
                           alt="Delta Force"
@@ -749,6 +875,46 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+
+            <div
+              className="cursor-pointer outline-none group"
+              role="radio"
+              aria-checked={selectedGame === 'haikyu'}
+              data-state={selectedGame === 'haikyu' ? 'checked' : 'unchecked'}
+              tabIndex={0}
+              onClick={() => {
+                setSelectedGame('haikyu')
+                setIsLoggedIn(false)
+                setPlayerId("")
+                setUserData(null)
+                router.push('/?app=100153')
+              }}
+            >
+              <div className="mx-auto max-w-[60px] sm:max-w-[70px] md:max-w-[105px]">
+                <div className="mb-1 px-[2px] sm:px-[3px] md:mb-2 md:px-2">
+                  <div className="relative">
+                    <div className={`relative overflow-hidden rounded-[25%] border-2 sm:border-[3px] md:border-4 transition-colors ${
+                      selectedGame === 'haikyu' ? 'border-destructive' : 'border-gray-300'
+                    }`}>
+                      <div className="relative pt-[100%]">
+                        <img
+                          alt="HAIKYU!! FLY HIGH"
+                          data-ai-hint="game icon"
+                          loading="lazy"
+                          decoding="async"
+                          className="pointer-events-none absolute inset-0 h-full w-full bg-white object-cover"
+                          sizes="(max-width: 640px) 60px, (max-width: 768px) 70px, 105px"
+                          src="/images/HAIKIU FLY HIGH.png"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center text-[10px] sm:text-xs font-medium text-gray-700 md:text-sm whitespace-pre-line">
+                  {"HAIKYU!!\nFLY HIGH"}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -757,11 +923,11 @@ export default function HomePage() {
           <div className="relative overflow-hidden rounded-t-xl h-40">
             <div 
               className="absolute h-full w-full rounded-t-lg bg-cover bg-center lg:rounded-lg" 
-              style={{ backgroundImage: 'url("/images/checkout-banner.webp")' }}
+              style={{ backgroundImage: `url("${currentConfig.banner}")` }}
             ></div>
             <div className="relative flex items-center p-4 lg:p-6">
               <img 
-                alt="Free Fire Icon" 
+                alt={`${currentConfig.name} Icon`}
                 data-ai-hint="game icon" 
                 loading="lazy" 
                 width="72" 
@@ -769,11 +935,11 @@ export default function HomePage() {
                 decoding="async" 
                 data-nimg="1" 
                 className="h-11 w-11 lg:h-[72px] lg:w-[72px]" 
-                src="/images/profile-icon.webp"
+                src={currentConfig.icon}
                 style={{ color: "transparent" }}
               />
               <div className="ms-3 flex flex-col items-start lg:ms-5">
-                <div className="mb-1 text-base/none font-bold text-white lg:text-2xl/none">Free Fire</div>
+                <div className="mb-1 text-base/none font-bold text-white lg:text-2xl/none">{currentConfig.name}</div>
                 <div className="flex items-center rounded border border-white/50 bg-black/[0.65] px-1.5 py-[5px] text-xs/none font-medium text-white lg:text-sm/none">
                   <svg width="1em" height="1em" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]">
                     <path d="M54.125 34.1211C55.2966 32.9495 55.2966 31.05 54.125 29.8784C52.9534 28.7069 51.0539 28.7069 49.8823 29.8784L38.0037 41.7571L32.125 35.8784C30.9534 34.7069 29.0539 34.7069 27.8823 35.8784C26.7108 37.05 26.7108 38.9495 27.8823 40.1211L35.8823 48.1211C37.0539 49.2926 38.9534 49.2926 40.125 48.1211L54.125 34.1211Z" fill="currentColor"></path>
@@ -786,56 +952,85 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Item Grátis Section */}
-        <div className="relative mx-auto max-w-5xl px-4 sm:px-[22px] md:px-8 pb-4 sm:pb-6">
-          
-          <div className="relative mb-4 md:mb-6 md:max-w-[464px] lg:mb-[28px]">
-          <img src="/images/fundopgtoseguro.png" alt="Pagamento Seguro" className="absolute inset-0 w-full h-full object-cover object-center payment-secure-img" />
-            <div 
-              className="absolute h-full w-full rounded-md bg-gradient-to-r imgItemGratis"
-            ></div>
+        {/* Item Grátis Section - Apenas para Free Fire */}
+        {selectedGame === 'freefire' && (
+          <div className="relative mx-auto max-w-5xl px-4 sm:px-[22px] md:px-8 pb-4 sm:pb-6">
             
-            <div className="relative flex h-full w-full justify-between px-[18px] py-4">
-              <div className="flex flex-col items-start justify-center">
-                
-                <div className="mb-0.5 text-base/none font-bold text-gray-800">Item Grátis</div>
-                <div className="mb-3 text-xs text-gray-600">Resgate aqui seus itens exclusivos grátis</div>
-                <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-destructive text-destructive-foreground hover:bg-destructive/90 py-2 h-7 px-3 text-xs font-medium">
-                  Resgatar
+            <div className="relative mb-4 md:mb-6 md:max-w-[464px] lg:mb-[28px]">
+            <img src="/images/fundopgtoseguro.png" alt="Pagamento Seguro" className="absolute inset-0 w-full h-full object-cover object-center payment-secure-img" />
+              <div 
+                className="absolute h-full w-full rounded-md bg-gradient-to-r imgItemGratis"
+              ></div>
+              
+              <div className="relative flex h-full w-full justify-between px-[18px] py-4">
+                <div className="flex flex-col items-start justify-center">
+                  
+                  <div className="mb-0.5 text-base/none font-bold text-gray-800">Item Grátis</div>
+                  <div className="mb-3 text-xs text-gray-600">Resgate aqui seus itens exclusivos grátis</div>
+                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-destructive text-destructive-foreground hover:bg-destructive/90 py-2 h-7 px-3 text-xs font-medium">
+                    Resgatar
+                  </button>
+                  
+                </div>
+                <button className="flex flex-col items-center justify-center">
+                  <div className="mb-2 flex h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <img 
+                      alt="Cubo Mágico" 
+                      loading="lazy" 
+                      width="60" 
+                      height="60" 
+                      decoding="async" 
+                      className="pointer-events-none h-full w-full object-cover" 
+                      src="/images/cubomagic.png"
+                    />
+                  </div>
+                  <div className="flex items-center text-xs">
+                    <div className="max-w-20 truncate font-medium text-gray-700">Cubo Mágico</div>
+                    <svg width="1em" height="1em" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <g clipPath="url(#recharge_clip0_489_1601)">
+                        <path d="M4.8999 5.39848C4.89981 4.44579 5.67209 3.67344 6.62478 3.67344H7.37471C8.33038 3.67344 9.09977 4.45392 9.09971 5.40371C9.09967 6.05546 8.73195 6.65677 8.14619 6.94967L7.57416 7.23571C7.49793 7.27382 7.44978 7.35173 7.44978 7.43695V7.49844C7.44978 7.78839 7.21473 8.02344 6.92478 8.02344C6.63483 8.02344 6.39978 7.78839 6.39978 7.49844V7.43695C6.39978 6.95403 6.67262 6.51255 7.10456 6.29657L7.6766 6.01053C7.90385 5.8969 8.0497 5.66087 8.04971 5.40365C8.04973 5.0279 7.74459 4.72344 7.37471 4.72344H6.62478C6.25203 4.72344 5.94987 5.02563 5.9499 5.39838C5.94993 5.68833 5.7149 5.9234 5.42495 5.92343C5.135 5.92346 4.89993 5.68843 4.8999 5.39848Z" fill="currentColor"></path>
+                        <path d="M6.9999 10.1484C7.3865 10.1484 7.6999 9.83504 7.6999 9.44844C7.6999 9.06184 7.3865 8.74844 6.9999 8.74844C6.6133 8.74844 6.2999 9.06184 6.2999 9.44844C6.2999 9.83504 6.6133 10.1484 6.9999 10.1484Z" fill="currentColor"></path>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M0.524902 6.99844C0.524902 3.42239 3.42386 0.523438 6.9999 0.523438C10.5759 0.523438 13.4749 3.42239 13.4749 6.99844C13.4749 10.5745 10.5759 13.4734 6.9999 13.4734C3.42386 13.4734 0.524902 10.5745 0.524902 6.99844ZM6.9999 1.57344C4.00376 1.57344 1.5749 4.00229 1.5749 6.99844C1.5749 9.99458 4.00376 12.4234 6.9999 12.4234C9.99605 12.4234 12.4249 9.99458 12.4249 6.99844C12.4249 4.00229 9.99605 1.57344 6.9999 1.57344Z" fill="currentColor"></path>
+                      </g>
+                      <defs>
+                        <clipPath id="recharge_clip0_489_1601">
+                          <rect width="14" height="14" fill="currentColor"></rect>
+                        </clipPath>
+                      </defs>
+                    </svg>
+                  </div>
                 </button>
-                
               </div>
-              <button className="flex flex-col items-center justify-center">
-                <div className="mb-2 flex h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
-                  <img 
-                    alt="Cubo Mágico" 
-                    loading="lazy" 
-                    width="60" 
-                    height="60" 
-                    decoding="async" 
-                    className="pointer-events-none h-full w-full object-cover" 
-                    src="/images/cubomagic.png"
-                  />
-                </div>
-                <div className="flex items-center text-xs">
-                  <div className="max-w-20 truncate font-medium text-gray-700">Cubo Mágico</div>
-                  <svg width="1em" height="1em" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <g clipPath="url(#recharge_clip0_489_1601)">
-                      <path d="M4.8999 5.39848C4.89981 4.44579 5.67209 3.67344 6.62478 3.67344H7.37471C8.33038 3.67344 9.09977 4.45392 9.09971 5.40371C9.09967 6.05546 8.73195 6.65677 8.14619 6.94967L7.57416 7.23571C7.49793 7.27382 7.44978 7.35173 7.44978 7.43695V7.49844C7.44978 7.78839 7.21473 8.02344 6.92478 8.02344C6.63483 8.02344 6.39978 7.78839 6.39978 7.49844V7.43695C6.39978 6.95403 6.67262 6.51255 7.10456 6.29657L7.6766 6.01053C7.90385 5.8969 8.0497 5.66087 8.04971 5.40365C8.04973 5.0279 7.74459 4.72344 7.37471 4.72344H6.62478C6.25203 4.72344 5.94987 5.02563 5.9499 5.39838C5.94993 5.68833 5.7149 5.9234 5.42495 5.92343C5.135 5.92346 4.89993 5.68843 4.8999 5.39848Z" fill="currentColor"></path>
-                      <path d="M6.9999 10.1484C7.3865 10.1484 7.6999 9.83504 7.6999 9.44844C7.6999 9.06184 7.3865 8.74844 6.9999 8.74844C6.6133 8.74844 6.2999 9.06184 6.2999 9.44844C6.2999 9.83504 6.6133 10.1484 6.9999 10.1484Z" fill="currentColor"></path>
-                      <path fillRule="evenodd" clipRule="evenodd" d="M0.524902 6.99844C0.524902 3.42239 3.42386 0.523438 6.9999 0.523438C10.5759 0.523438 13.4749 3.42239 13.4749 6.99844C13.4749 10.5745 10.5759 13.4734 6.9999 13.4734C3.42386 13.4734 0.524902 10.5745 0.524902 6.99844ZM6.9999 1.57344C4.00376 1.57344 1.5749 4.00229 1.5749 6.99844C1.5749 9.99458 4.00376 12.4234 6.9999 12.4234C9.99605 12.4234 12.4249 9.99458 12.4249 6.99844C12.4249 4.00229 9.99605 1.57344 6.9999 1.57344Z" fill="currentColor"></path>
-                    </g>
-                    <defs>
-                      <clipPath id="recharge_clip0_489_1601">
-                        <rect width="14" height="14" fill="currentColor"></rect>
-                      </clipPath>
-                    </defs>
-                  </svg>
-                </div>
-              </button>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Eventos especiais Section - Apenas Free Fire */}
+        {selectedGame === 'freefire' && (
+          <div className="relative mx-auto max-w-5xl px-4 sm:px-[22px] md:px-8 pb-4 sm:pb-6">
+            <div className="flex flex-col gap-6">
+              <div>
+                <div className="mb-3 text-lg font-bold text-gray-800 md:text-xl">Eventos especiais</div>
+                <div className="relative grid gap-4 md:grid-cols-2">
+                  <a href="" >
+                    <div className="relative mb-3 w-full pt-[28.048%]">
+                      <img 
+                        className="pointer-events-none absolute inset-0 block h-full w-full rounded-md object-cover" 
+                        src="/images/eventosEspeciais.png"
+                        alt="Eventos Especiais"
+                      />
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-medium md:text-base">
+                        Rode ou compre diretamente? Um evento exclusivo está aqui no Recarga Jogo!
+                      </div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Login Section */}
         <div className="relative mx-auto max-w-5xl px-4 sm:px-[22px] md:px-8 pb-4 sm:pb-6">
@@ -849,7 +1044,7 @@ export default function HomePage() {
                     viewBox="0 0 24 24"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`col-start-1 row-start-1 text-xl sm:text-2xl ${isLoggedIn ? "text-green-500" : "text-destructive"}`}
+                    className={`col-start-1 row-start-1 text-xl sm:text-2xl ${isLoggedIn ? "text-red-500" : "text-destructive"}`}
                   >
                     <path
                       d="M0 3C0 1.34315 1.34315 0 3 0H21C22.6569 0 24 1.34315 24 3V15.7574C24 16.553 23.6839 17.3161 23.1213 17.8787L17.8787 23.1213C17.3161 23.6839 16.553 24 15.7574 24H3C1.34315 24 0 22.6569 0 21V3Z"
@@ -860,12 +1055,8 @@ export default function HomePage() {
                     {isLoggedIn ? "✓" : "1"}
                   </div>
                 </div>
-                <span className="font-bold">Login</span>
-                {isLoggedIn && (
-                  <div className="ml-2 px-2 py-0.5 sm:py-1 bg-green-100 text-green-800 text-[10px] sm:text-xs font-bold rounded-full">
-                    CONECTADO
-                  </div>
-                )}
+                <span className="font-bold ">Login</span>
+
               </div>
               {isLoggedIn && (
                 <button
@@ -875,8 +1066,11 @@ export default function HomePage() {
                     setAvatarInfo(null)
                     setPlayerId("")
                   }}
-                  className="text-sm text-red-600 hover:text-red-700 font-medium"
+                  className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
                 >
+                  <svg width="1em" height="1em" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M53.048 11.8069C51.8367 10.6764 49.9383 10.7418 48.8078 11.953C47.6773 13.1643 47.7428 15.0626 48.954 16.1932L58.3898 25H14.0007C12.3439 25 11.0007 26.3432 11.0007 28C11.0007 29.6569 12.3439 31 14.0007 31H66.0007C67.233 31 68.3399 30.2465 68.7917 29.1001C69.2436 27.9538 68.9485 26.6476 68.0477 25.8069L53.048 11.8069ZM26.9539 68.1932C28.1652 69.3237 30.0636 69.2582 31.1941 68.0469C32.3245 66.8356 32.259 64.9373 31.0477 63.8068L21.6114 55H66.0001C67.657 55 69.0001 53.6569 69.0001 52C69.0001 50.3432 67.657 49 66.0001 49H14.0001C12.7679 49 11.6609 49.7535 11.2091 50.8999C10.7572 52.0464 11.0524 53.3525 11.9532 54.1932L26.9539 68.1932Z" fill="currentColor"></path>
+                  </svg>
                   Sair
                 </button>
               )}
@@ -885,59 +1079,33 @@ export default function HomePage() {
               className="relative p-3 sm:p-4 border rounded-md transition-all bg-[#f4f4f4] border-gray-200"
             >
               {isLoggedIn && (
-                <div className="mb-3 sm:mb-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                  {userData && userData.nickname ? (
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 flex-shrink-0">
-                        {avatarInfo && avatarInfo.imageUrl ? (
-                          <img 
-                            src={avatarInfo.imageUrl} 
-                            alt={avatarInfo.name || "Avatar"} 
-                            className="w-full h-full rounded-full border border-gray-300"
-                            onError={(e) => {
-                              // Fallback para o método antigo se a imagem não carregar
-                              const target = e.target as HTMLImageElement
-                              target.src = `https://freefiremobile-a.akamaihd.net/common/Local/PK/FF_UI_Icon/Icon_face_${userData.headPic.toString().slice(0, 2)}.png`
-                            }}
-                          />
-                        ) : userData.headPic ? (
-                          <img 
-                            src={`https://freefiremobile-a.akamaihd.net/common/Local/PK/FF_UI_Icon/Icon_face_${userData.headPic.toString().slice(0, 2)}.png`} 
-                            alt="Avatar" 
-                            className="w-full h-full rounded-full border border-gray-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full rounded-full border border-gray-300 bg-gray-200 flex items-center justify-center">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">Usuário: {userData.nickname}</p>
-                        <p className="text-xs text-gray-500 truncate">ID: {userData.accountId || playerId}</p>
-                      </div>
+                <div className="mb-3 sm:mb-4">
+                  <div className="relative flex items-center rounded-md p-3 bg-[#f4f4f4]">
+                    <div className="me-3 h-9 w-9 shrink-0 overflow-hidden rounded-full">
+                      <img 
+                        alt={`${currentConfig.name} Icon`}
+                        data-ai-hint="game icon" 
+                        loading="lazy" 
+                        width="36" 
+                        height="36" 
+                        decoding="async" 
+                        data-nimg="1" 
+                        className="block h-full w-full object-contain" 
+                        src={currentConfig.icon}
+                        style={{ color: "transparent" }}
+                      />
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M20 6L9 17L4 12"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-green-800 font-bold text-sm">Login realizado com sucesso!</p>
-                        <p className="text-green-700 text-xs">ID: {playerId}</p>
-                      </div>
+                    <div className="flex-1 text-sm/none text-gray-800">
+                      {userData && userData.nickname ? (
+                        <div>
+                          <div className="font-medium">Usuário: {userData.nickname}</div>
+                          <div className="text-xs text-gray-600 mt-1">ID do jogador: {userData.accountId || playerId}</div>
+                        </div>
+                      ) : (
+                        <div>ID do jogador: {playerId}</div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
@@ -950,22 +1118,29 @@ export default function HomePage() {
                     ID do jogador
                     <button
                       type="button"
-                      className="rounded-full text-xs sm:text-sm text-gray-500 transition-opacity hover:opacity-70"
+                      onClick={() => setShowTutorialModal(true)}
+                      className="rounded-full text-sm outline-current transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2"
                     >
                       <svg width="1em" height="1em" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <g clipPath="url(#recharge_clip0_489_1601)">
+                        <g clipPath="url(#clip0_489_1601)">
                           <path
-                            d="M4.8999 5.39848C4.89981 4.44579 5.67209 3.67344 6.62478 3.67344H7.37471C8.33038 3.67344 9.09977 4.45392 9.09971 5.40371C9.09967 6.05546 8.73195 6.65677 8.14619 6.94967L7.57416 7.23571C7.49793 7.27382 7.44978 7.35173 7.44978 7.43695V7.49844C7.44978 7.78839 7.21473 8.02344 6.92478 8.02344C6.63483 8.02344 6.39978 7.78839 6.39978 7.49844V7.43695C6.39978 6.95403 6.67262 6.51255 7.10456 6.29657L7.6766 6.01053C7.90385 5.8969 8.0497 5.66087 8.04971 5.40365C8.04973 5.0279 7.74459 4.72344 7.37471 4.72344H6.62478C6.25203 4.72344 5.94987 5.02563 5.9499 5.39838C5.94993 5.68833 5.7149 5.68843 5.42495 5.92343C5.135 5.92346 4.89993 5.68843 4.8999 5.39848Z"
+                            d="M4.8999 5.39848C4.89981 4.44579 5.67209 3.67344 6.62478 3.67344H7.37471C8.33038 3.67344 9.09977 4.45392 9.09971 5.40371C9.09967 6.05546 8.73195 6.65677 8.14619 6.94967L7.57416 7.23571C7.49793 7.27382 7.44978 7.35173 7.44978 7.43695V7.49844C7.44978 7.78839 7.21473 8.02344 6.92478 8.02344C6.63483 8.02344 6.39978 7.78839 6.39978 7.49844V7.43695C6.39978 6.95403 6.67262 6.51255 7.10456 6.29657L7.6766 6.01053C7.90385 5.8969 8.0497 5.66087 8.04971 5.40365C8.04973 5.0279 7.74459 4.72344 7.37471 4.72344H6.62478C6.25203 4.72344 5.94987 5.02563 5.9499 5.39838C5.94993 5.68833 5.7149 5.9234 5.42495 5.92343C5.135 5.92346 4.89993 5.68843 4.8999 5.39848Z"
                             fill="currentColor"
                           ></path>
                           <path
-                            d="M6.92478 10.7734C7.21473 10.7734 7.44978 10.5384 7.44978 10.2484C7.44978 9.95849 7.21473 9.72344 6.92478 9.72344C6.63483 9.72344 6.39978 9.95849 6.39978 10.2484C6.39978 10.5384 6.63483 10.7734 6.92478 10.7734Z"
+                            d="M6.9999 10.1484C7.3865 10.1484 7.6999 9.83504 7.6999 9.44844C7.6999 9.06184 7.3865 8.74844 6.9999 8.74844C6.6133 8.74844 6.2999 9.06184 6.2999 9.44844C6.2999 9.83504 6.6133 10.1484 6.9999 10.1484Z"
+                            fill="currentColor"
+                          ></path>
+                          <path
+                            fillRule="evenodd"
+                            clipRule="evenodd"
+                            d="M0.524902 6.99844C0.524902 3.42239 3.42386 0.523438 6.9999 0.523438C10.5759 0.523438 13.4749 3.42239 13.4749 6.99844C13.4749 10.5745 10.5759 13.4734 6.9999 13.4734C3.42386 13.4734 0.524902 10.5745 0.524902 6.99844ZM6.9999 1.57344C4.00376 1.57344 1.5749 4.00229 1.5749 6.99844C1.5749 9.99458 4.00376 12.4234 6.9999 12.4234C9.99605 12.4234 12.4249 9.99458 12.4249 6.99844C12.4249 4.00229 9.99605 1.57344 6.9999 1.57344Z"
                             fill="currentColor"
                           ></path>
                         </g>
                         <defs>
-                          <clipPath id="recharge_clip0_489_1601">
-                            <rect width="14" height="14" fill="white"></rect>
+                          <clipPath id="clip0_489_1601">
+                            <rect width="14" height="14" fill="currentColor"></rect>
                           </clipPath>
                         </defs>
                       </svg>
@@ -1092,21 +1267,26 @@ export default function HomePage() {
             <span className="font-bold">Valor de Recarga</span>
           </div>
           
-          {/* Texto Promocional */}
-          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg">
-            <div className="text-center">
-              <h3 className="text-base sm:text-lg font-bold text-red-600 mb-1">
-                🎉 Você ganhou 80% de desconto na primeira recarga!
-              </h3>
-              <p className="text-xs sm:text-sm text-red-500 font-medium">
-                Promoção válida somente para os valores destacados
-              </p>
+          {/* Texto Promocional - Apenas após login */}
+          {isLoggedIn && (
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg">
+              <div className="text-center">
+                <h3 className="text-base sm:text-lg font-bold text-red-600 mb-1">
+                  🎉 Você ganhou 80% de desconto na primeira recarga!
+                </h3>
+                <p className="text-xs sm:text-sm text-red-500 font-medium">
+                  Promoção válida somente para os valores destacados
+                </p>
+              </div>
             </div>
-          </div>
+          )}
           <div className="grid grid-cols-3 gap-2 sm:gap-2.5 sm:grid-cols-4 md:grid-cols-6 md:gap-4">
-            {["100", "310", "520", "1.060", "2.180", "5.600", "15.600"].map((value) => {
-              const isPromotional = ["1.060", "2.180", "5.600", "15.600"].includes(value)
-              const isDisabled = !isPromotional
+            {currentConfig.rechargeValues.map((value) => {
+              const isPromotional = currentConfig.promotionalValues.includes(value)
+              const isDisabled = (selectedGame === 'freefire' && !isPromotional) || 
+                                 (selectedGame === 'deltaforce' && !isPromotional) ||
+                                 (selectedGame === 'haikyu' && !isPromotional)
+              const hasDoubleCoins = (selectedGame === 'deltaforce' || selectedGame === 'haikyu') && isPromotional
               
               return (
                 <div
@@ -1114,7 +1294,7 @@ export default function HomePage() {
                   role="radio"
                   aria-checked={selectedRechargeValue === value}
                   tabIndex={isDisabled ? -1 : 0}
-                  className={`group relative flex flex-col min-h-[45px] sm:min-h-[50px] overflow-hidden rounded-md p-0 sm:min-h-[64px] md:min-h-[72px] border outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring ${
+                  className={`group relative flex flex-col min-h-[60px] sm:min-h-[70px] overflow-hidden rounded-md p-0 sm:min-h-[80px] md:min-h-[90px] border outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring ${
                     isDisabled
                       ? "bg-gray-100 border-gray-300 cursor-not-allowed opacity-50"
                       : selectedRechargeValue === value
@@ -1123,27 +1303,27 @@ export default function HomePage() {
                   }`}
                   onClick={() => !isDisabled && handleRechargeValueSelect(value)}
                 >
-                  {/* Badge de Promoção */}
+                  {/* Badge de Promoção - Coins em Dobro para Delta Force */}
+                  {hasDoubleCoins && (
+                    <div className="absolute top-0 right-0 left-0 bg-destructive text-white text-[10px] font-bold px-1.5 py-0.5 text-center">
+                      COINS EM DOBRO
+                    </div>
+                  )}
                   
-                  
-                  <div className="flex flex-1 items-center justify-center p-1">
+                  <div className={`flex flex-1 items-center justify-center p-1 ${hasDoubleCoins ? 'pt-4' : ''}`}>
                     <img
-                      alt="Diamante"
-                      data-ai-hint="diamond gem"
+                      alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                      data-ai-hint="coin"
                       loading="lazy"
                       width="16"
                       height="16"
                       decoding="async"
                       data-nimg="1"
-                      className={`me-1 h-2.5 w-2.5 sm:h-3 sm:w-3 object-contain md:h-4 md:w-4 ${
-                        isDisabled ? "grayscale" : ""
-                      }`}
-                      src="/images/point.webp"
+                      className={`coin-icon ${isDisabled ? "grayscale" : ""}`}
+                      src={currentConfig.coinIcon}
                       style={{ color: "transparent" }}
                     />
-                    <span className={`text-[10px] sm:text-xs md:text-lg ${
-                      isDisabled ? "text-gray-400" : ""
-                    }`}>
+                    <span className={`coin-value-text ${isDisabled ? "text-gray-400" : ""}`}>
                       {value}
                     </span>
                   </div>
@@ -1164,107 +1344,86 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-5xl px-4 sm:px-[22px] md:px-8 pb-4 sm:pb-6">
           <h3 className="mb-3 sm:mb-4 text-base sm:text-lg font-medium text-gray-600">Ofertas especiais</h3>
           <div className="grid grid-cols-2 gap-2 sm:gap-2.5 md:grid-cols-4 md:gap-4">
-            <div
-              role="radio"
-              aria-checked={selectedSpecialOffer === "Assinatura Semanal"}
-              tabIndex={0}
-              className={`group peer relative flex h-full cursor-pointer flex-col items-center rounded-md bg-white p-1 sm:p-1.5 pb-1.5 sm:pb-2 border transition-all focus-visible:ring-2 focus-visible:ring-ring ${
-                selectedSpecialOffer === "Assinatura Semanal" ? "border-red-500 bg-red-50" : "border-gray-200"
-              }`}
-              onClick={() => handleSpecialOfferSelect("Assinatura Semanal")}
-            >
-              <div className="relative mb-1.5 sm:mb-2 w-full overflow-hidden rounded-sm pt-[56.25%]">
-                <img
-                  alt="Assinatura Semanal"
-                  data-ai-hint="game offer"
-                  loading="lazy"
-                  decoding="async"
-                  className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  src="/images/semanal.png"
-                />
+            {currentConfig.specialOffers.map((offer) => (
+              <div
+                key={offer.id}
+                className="relative"
+              >
+                <div
+                  role="radio"
+                  aria-checked={selectedSpecialOffer === offer.name}
+                  tabIndex={0}
+                  className={`group peer relative flex h-full cursor-pointer flex-col items-center rounded-md bg-white p-1 sm:p-1.5 pb-1.5 sm:pb-2 border transition-all focus-visible:ring-2 focus-visible:ring-ring ${
+                    selectedSpecialOffer === offer.name ? "border-red-500 bg-red-50" : "border-gray-200"
+                  }`}
+                  onClick={() => handleSpecialOfferSelect(offer.name)}
+                >
+                  <div className="relative mb-1.5 sm:mb-2 w-full overflow-hidden rounded-sm pt-[56.25%]">
+                    <img
+                      alt={offer.name}
+                      data-ai-hint="game offer"
+                      loading="lazy"
+                      decoding="async"
+                      className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                      src={offer.image}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="text-center text-sm leading-[18px] font-medium text-gray-700 line-clamp-2">
+                      {offer.name}
+                    </div>
+                    {(selectedGame === 'haikyu' || selectedGame === 'freefire' || selectedGame === 'deltaforce') && offer.description && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedOfferInfo({
+                            name: offer.name,
+                            image: offer.image,
+                            description: offer.description
+                          })
+                          setShowOfferInfoModal(true)
+                        }}
+                        className="shrink-0 flex cursor-pointer relative z-10"
+                      >
+                        <svg width="1em" height="1em" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                          <path d="M44 26C44 23.7909 42.2091 22 40 22C37.7909 22 36 23.7909 36 26C36 28.2091 37.7909 30 40 30C42.2091 30 44 28.2091 44 26Z" fill="currentColor"></path>
+                          <path d="M43 54C43 55.6569 41.6569 57 40 57C38.3431 57 37 55.6569 37 54V37C37 35.3431 38.3431 34 40 34C41.6569 34 43 35.3431 43 37V54Z" fill="currentColor"></path>
+                          <path fillRule="evenodd" clipRule="evenodd" d="M5 25C5 13.9543 13.9543 5 25 5H55C66.0457 5 75 13.9543 75 25V55C75 66.0457 66.0457 75 55 75H25C13.9543 75 5 66.0457 5 55V25ZM25 11H55C62.732 11 69 17.268 69 25V55C69 62.732 62.732 69 55 69H25C17.268 69 11 62.732 11 55V25C11 17.268 17.268 11 25 11Z" fill="currentColor"></path>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="text-center text-[10px] sm:text-xs font-medium text-gray-700 md:text-sm">
-                Assinatura Semanal
-              </div>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            <div
-              role="radio"
-              aria-checked={selectedSpecialOffer === "Assinatura Mensal"}
-              tabIndex={0}
-              className={`group peer relative flex h-full cursor-pointer flex-col items-center rounded-md bg-white p-1 sm:p-1.5 pb-1.5 sm:pb-2 border transition-all focus-visible:ring-2 focus-visible:ring-ring ${
-                selectedSpecialOffer === "Assinatura Mensal" ? "border-red-500 bg-red-50" : "border-gray-200"
-              }`}
-              onClick={() => handleSpecialOfferSelect("Assinatura Mensal")}
-            >
-              <div className="relative mb-1.5 sm:mb-2 w-full overflow-hidden rounded-sm pt-[56.25%]">
-                <img
-                  alt="Assinatura Mensal"
-                  data-ai-hint="game offer"
-                  loading="lazy"
-                  decoding="async"
-                  className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  src="/images/mensal.png"
-                />
-              </div>
-              <div className="text-center text-[10px] sm:text-xs font-medium text-gray-700 md:text-sm">
-                Assinatura Mensal
-              </div>
-            </div>
-
-            <div
-              role="radio"
-              aria-checked={selectedSpecialOffer === "Passe Booyah"}
-              tabIndex={0}
-              className={`group peer relative flex h-full cursor-pointer flex-col items-center rounded-md bg-white p-1 sm:p-1.5 pb-1.5 sm:pb-2 border transition-all focus-visible:ring-2 focus-visible:ring-ring ${
-                selectedSpecialOffer === "Passe Booyah" ? "border-red-500 bg-red-50" : "border-gray-200"
-              }`}
-              onClick={() => handleSpecialOfferSelect("Passe Booyah")}
-            >
-              <div className="relative mb-1.5 sm:mb-2 w-full overflow-hidden rounded-sm pt-[56.25%]">
-                <img
-                  alt="Passe Booyah"
-                  data-ai-hint="game offer"
-                  loading="lazy"
-                  decoding="async"
-                  className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  src="/images/passe-booyah.webp"
-                />
-              </div>
-              <div className="text-center text-[10px] sm:text-xs font-medium text-gray-700 md:text-sm">
-                Passe Booyah
-              </div>
-            </div>
-
-            <div
-              role="radio"
-              aria-checked={selectedSpecialOffer === "Passe de Nível"}
-              tabIndex={0}
-              className={`group peer relative flex h-full cursor-pointer flex-col items-center rounded-md bg-white p-1 sm:p-1.5 pb-1.5 sm:pb-2 border transition-all focus-visible:ring-2 focus-visible:ring-ring ${
-                selectedSpecialOffer === "Passe de Nível" ? "border-red-500 bg-red-50" : "border-gray-200"
-              }`}
-              onClick={() => handleSpecialOfferSelect("Passe de Nível")}
-            >
-              <div className="relative mb-1.5 sm:mb-2 w-full overflow-hidden rounded-sm pt-[56.25%]">
-                <img
-                  alt="Passe de Nível"
-                  data-ai-hint="game offer"
-                  loading="lazy"
-                  decoding="async"
-                  className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  src="/images/passe-nivel.webp"
-                />
-              </div>
-              <div className="text-center text-[10px] sm:text-xs font-medium text-gray-700 md:text-sm">
-                Passe de Nível
+        {/* Modal de Informação da Oferta - Haikyu */}
+        {showOfferInfoModal && selectedOfferInfo && (
+          <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4" onClick={() => setShowOfferInfoModal(false)}>
+            <div className="relative flex h-full w-full items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              <div className="flex w-80 flex-col items-center justify-center rounded-lg bg-white p-6 text-center">
+                <div className="mb-5 flex w-full items-center justify-center overflow-hidden rounded-[4px]">
+                  <img 
+                    className="pointer-events-none h-full w-full object-cover" 
+                    src={selectedOfferInfo.image} 
+                    alt={selectedOfferInfo.name}
+                  />
+                </div>
+                <div className="mb-3 text-base font-bold text-gray-800">{selectedOfferInfo.name}</div>
+                <div className="text-sm leading-[22px] text-gray-600">{selectedOfferInfo.description}</div>
+                <button 
+                  className="mt-5 w-full inline-flex items-center justify-center gap-1.5 rounded-md border py-1 text-center leading-none transition-colors border-red-500 bg-red-500 text-white hover:bg-red-600 hover:border-red-600 px-5 text-sm font-bold h-10"
+                  onClick={() => setShowOfferInfoModal(false)}
+                >
+                  OK
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Método de pagamento Section */}
         <div className="relative mx-auto max-w-5xl px-4 sm:px-[22px] md:px-8 pb-4 sm:pb-6">
@@ -1291,9 +1450,14 @@ export default function HomePage() {
             {/* PIX */}
             <div
               role="radio"
-              aria-checked="true"
+              aria-checked={selectedPaymentMethod === "PIX"}
               tabIndex={0}
-              className="group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md border-2 border-blue-500 bg-blue-50 p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3"
+              onClick={() => setSelectedPaymentMethod("PIX")}
+              className={`group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3 ${
+                selectedPaymentMethod === "PIX" 
+                  ? "border-2 border-red-500 bg-red-50" 
+                  : "border border-gray-200 bg-white hover:border-red-300"
+              }`}
             >
               <div className="shrink-0">
                 <img
@@ -1321,35 +1485,55 @@ export default function HomePage() {
                     <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
                       + Bônus 
                       <img 
-                        alt="Diamante" 
-                        data-ai-hint="diamond gem" 
+                        alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                        data-ai-hint="coin" 
                         loading="lazy" 
                         width="12" 
                         height="12" 
                         decoding="async" 
                         data-nimg="1" 
                         className="mx-1 h-3 w-3 object-contain" 
-                        src="/images/point.webp" 
+                        src={currentConfig.coinIcon}
                         style={{ color: "transparent" }}
                       />
                       {calculatePrice(selectedRechargeValue).bonus}
                     </span>
                   </div>
                 )}
+                {selectedSpecialOffer && (selectedGame === 'haikyu' || selectedGame === 'deltaforce') && getSpecialOfferBonus(selectedSpecialOffer) > 0 && (
+                  <div className="flex flex-wrap gap-y-1 empty:hidden md:gap-y-2">
+                    <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
+                      + Bônus 
+                      <img 
+                        alt={selectedGame === 'deltaforce' ? 'Coins' : 'Diamantes Estelares'}
+                        data-ai-hint="coin" 
+                        loading="lazy" 
+                        width="12" 
+                        height="12" 
+                        decoding="async" 
+                        data-nimg="1" 
+                        className="mx-1 h-3 w-3 object-contain" 
+                        src={currentConfig.coinIcon}
+                        style={{ color: "transparent" }}
+                      />
+                      {getSpecialOfferBonus(selectedSpecialOffer)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="absolute end-[2px] top-[2px] sm:end-[3px] sm:top-[3px] overflow-hidden rounded-[3px]">
-                <div className="flex text-[8px] sm:text-[10px] font-bold uppercase leading-none">
+                <div className="flex text-[9px] sm:text-[11px] font-bold uppercase leading-none">
                   <div className="flex items-center gap-0.5 sm:gap-1 bg-destructive p-0.5 pr-0.5 sm:pr-1 text-white">
                     <img
-                      alt="Diamante"
-                      data-ai-hint="diamond gem"
+                      alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                      data-ai-hint="coin"
                       loading="lazy"
                       width="12"
                       height="12"
                       decoding="async"
                       data-nimg="1"
-                      className="h-2 w-2 sm:h-3 sm:w-3 rounded-sm bg-white object-contain p-0.5"
-                      src="/images/point.webp"
+                      className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 rounded-sm bg-white object-contain p-0.5"
+                      src={currentConfig.coinIcon}
                       style={{ color: "transparent" }}
                     />
                     <span>Promo</span>
@@ -1361,9 +1545,14 @@ export default function HomePage() {
             {/* Cartões de Crédito */}
             <div
               role="radio"
-              aria-checked="false"
+              aria-checked={selectedPaymentMethod === "Cartão de Crédito"}
               tabIndex={0}
-              className="group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md border border-gray-200 bg-white p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3"
+              onClick={() => setSelectedPaymentMethod("Cartão de Crédito")}
+              className={`group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3 ${
+                selectedPaymentMethod === "Cartão de Crédito" 
+                  ? "border-2 border-red-500 bg-red-50" 
+                  : "border border-gray-200 bg-white hover:border-red-300"
+              }`}
             >
               <div className="shrink-0">
                 <img
@@ -1391,35 +1580,55 @@ export default function HomePage() {
                     <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
                       + Bônus 
                       <img 
-                        alt="Diamante" 
-                        data-ai-hint="diamond gem" 
+                        alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                        data-ai-hint="coin" 
                         loading="lazy" 
                         width="12" 
                         height="12" 
                         decoding="async" 
                         data-nimg="1" 
                         className="mx-1 h-3 w-3 object-contain" 
-                        src="/images/point.webp" 
+                        src={currentConfig.coinIcon}
                         style={{ color: "transparent" }}
                       />
                       {calculatePrice(selectedRechargeValue).bonus}
                     </span>
                   </div>
                 )}
+                {selectedSpecialOffer && (selectedGame === 'haikyu' || selectedGame === 'deltaforce') && getSpecialOfferBonus(selectedSpecialOffer) > 0 && (
+                  <div className="flex flex-wrap gap-y-1 empty:hidden md:gap-y-2">
+                    <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
+                      + Bônus 
+                      <img 
+                        alt={selectedGame === 'deltaforce' ? 'Coins' : 'Diamantes Estelares'}
+                        data-ai-hint="coin" 
+                        loading="lazy" 
+                        width="12" 
+                        height="12" 
+                        decoding="async" 
+                        data-nimg="1" 
+                        className="mx-1 h-3 w-3 object-contain" 
+                        src={currentConfig.coinIcon}
+                        style={{ color: "transparent" }}
+                      />
+                      {getSpecialOfferBonus(selectedSpecialOffer)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="absolute end-[2px] top-[2px] sm:end-[3px] sm:top-[3px] overflow-hidden rounded-[3px]">
-                <div className="flex text-[8px] sm:text-[10px] font-bold uppercase leading-none">
+                <div className="flex text-[9px] sm:text-[11px] font-bold uppercase leading-none">
                   <div className="flex items-center gap-0.5 sm:gap-1 bg-destructive p-0.5 pr-0.5 sm:pr-1 text-white">
                     <img
-                      alt="Diamante"
-                      data-ai-hint="diamond gem"
+                      alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                      data-ai-hint="coin"
                       loading="lazy"
                       width="12"
                       height="12"
                       decoding="async"
                       data-nimg="1"
-                      className="h-2 w-2 sm:h-3 sm:w-3 rounded-sm bg-white object-contain p-0.5"
-                      src="/images/point.webp"
+                      className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 rounded-sm bg-white object-contain p-0.5"
+                      src={currentConfig.coinIcon}
                       style={{ color: "transparent" }}
                     />
                     <span>Promo</span>
@@ -1431,9 +1640,14 @@ export default function HomePage() {
             {/* PicPay */}
             <div
               role="radio"
-              aria-checked="false"
+              aria-checked={selectedPaymentMethod === "PicPay"}
               tabIndex={0}
-              className="group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md border border-gray-200 bg-white p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3"
+              onClick={() => setSelectedPaymentMethod("PicPay")}
+              className={`group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3 ${
+                selectedPaymentMethod === "PicPay" 
+                  ? "border-2 border-red-500 bg-red-50" 
+                  : "border border-gray-200 bg-white hover:border-red-300"
+              }`}
             >
               <div className="shrink-0">
                 <img
@@ -1461,35 +1675,55 @@ export default function HomePage() {
                     <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
                       + Bônus 
                       <img 
-                        alt="Diamante" 
-                        data-ai-hint="diamond gem" 
+                        alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                        data-ai-hint="coin" 
                         loading="lazy" 
                         width="12" 
                         height="12" 
                         decoding="async" 
                         data-nimg="1" 
                         className="mx-1 h-3 w-3 object-contain" 
-                        src="/images/point.webp" 
+                        src={currentConfig.coinIcon}
                         style={{ color: "transparent" }}
                       />
                       {calculatePrice(selectedRechargeValue).bonus}
                     </span>
                   </div>
                 )}
+                {selectedSpecialOffer && (selectedGame === 'haikyu' || selectedGame === 'deltaforce') && getSpecialOfferBonus(selectedSpecialOffer) > 0 && (
+                  <div className="flex flex-wrap gap-y-1 empty:hidden md:gap-y-2">
+                    <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
+                      + Bônus 
+                      <img 
+                        alt={selectedGame === 'deltaforce' ? 'Coins' : 'Diamantes Estelares'}
+                        data-ai-hint="coin" 
+                        loading="lazy" 
+                        width="12" 
+                        height="12" 
+                        decoding="async" 
+                        data-nimg="1" 
+                        className="mx-1 h-3 w-3 object-contain" 
+                        src={currentConfig.coinIcon}
+                        style={{ color: "transparent" }}
+                      />
+                      {getSpecialOfferBonus(selectedSpecialOffer)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="absolute end-[2px] top-[2px] sm:end-[3px] sm:top-[3px] overflow-hidden rounded-[3px]">
-                <div className="flex text-[8px] sm:text-[10px] font-bold uppercase leading-none">
+                <div className="flex text-[9px] sm:text-[11px] font-bold uppercase leading-none">
                   <div className="flex items-center gap-0.5 sm:gap-1 bg-destructive p-0.5 pr-0.5 sm:pr-1 text-white">
                     <img
-                      alt="Diamante"
-                      data-ai-hint="diamond gem"
+                      alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                      data-ai-hint="coin"
                       loading="lazy"
                       width="12"
                       height="12"
                       decoding="async"
                       data-nimg="1"
-                      className="h-2 w-2 sm:h-3 sm:w-3 rounded-sm bg-white object-contain p-0.5"
-                      src="/images/point.webp"
+                      className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 rounded-sm bg-white object-contain p-0.5"
+                      src={currentConfig.coinIcon}
                       style={{ color: "transparent" }}
                     />
                     <span>Promo</span>
@@ -1501,9 +1735,14 @@ export default function HomePage() {
             {/* NUPay */}
             <div
               role="radio"
-              aria-checked="false"
+              aria-checked={selectedPaymentMethod === "NUPay"}
               tabIndex={0}
-              className="group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md border border-gray-200 bg-white p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3"
+              onClick={() => setSelectedPaymentMethod("NUPay")}
+              className={`group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3 ${
+                selectedPaymentMethod === "NUPay" 
+                  ? "border-2 border-red-500 bg-red-50" 
+                  : "border border-gray-200 bg-white hover:border-red-300"
+              }`}
             >
               <div className="shrink-0">
                 <img
@@ -1531,35 +1770,55 @@ export default function HomePage() {
                     <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
                       + Bônus 
                       <img 
-                        alt="Diamante" 
-                        data-ai-hint="diamond gem" 
+                        alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                        data-ai-hint="coin" 
                         loading="lazy" 
                         width="12" 
                         height="12" 
                         decoding="async" 
                         data-nimg="1" 
                         className="mx-1 h-3 w-3 object-contain" 
-                        src="/images/point.webp" 
+                        src={currentConfig.coinIcon}
                         style={{ color: "transparent" }}
                       />
                       {calculatePrice(selectedRechargeValue).bonus}
                     </span>
                   </div>
                 )}
+                {selectedSpecialOffer && (selectedGame === 'haikyu' || selectedGame === 'deltaforce') && getSpecialOfferBonus(selectedSpecialOffer) > 0 && (
+                  <div className="flex flex-wrap gap-y-1 empty:hidden md:gap-y-2">
+                    <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
+                      + Bônus 
+                      <img 
+                        alt={selectedGame === 'deltaforce' ? 'Coins' : 'Diamantes Estelares'}
+                        data-ai-hint="coin" 
+                        loading="lazy" 
+                        width="12" 
+                        height="12" 
+                        decoding="async" 
+                        data-nimg="1" 
+                        className="mx-1 h-3 w-3 object-contain" 
+                        src={currentConfig.coinIcon}
+                        style={{ color: "transparent" }}
+                      />
+                      {getSpecialOfferBonus(selectedSpecialOffer)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="absolute end-[2px] top-[2px] sm:end-[3px] sm:top-[3px] overflow-hidden rounded-[3px]">
-                <div className="flex text-[8px] sm:text-[10px] font-bold uppercase leading-none">
+                <div className="flex text-[9px] sm:text-[11px] font-bold uppercase leading-none">
                   <div className="flex items-center gap-0.5 sm:gap-1 bg-destructive p-0.5 pr-0.5 sm:pr-1 text-white">
                     <img
-                      alt="Diamante"
-                      data-ai-hint="diamond gem"
+                      alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                      data-ai-hint="coin"
                       loading="lazy"
                       width="12"
                       height="12"
                       decoding="async"
                       data-nimg="1"
-                      className="h-2 w-2 sm:h-3 sm:w-3 rounded-sm bg-white object-contain p-0.5"
-                      src="/images/point.webp"
+                      className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 rounded-sm bg-white object-contain p-0.5"
+                      src={currentConfig.coinIcon}
                       style={{ color: "transparent" }}
                     />
                     <span>Promo</span>
@@ -1571,9 +1830,14 @@ export default function HomePage() {
             {/* Mercado Pago */}
             <div
               role="radio"
-              aria-checked="false"
+              aria-checked={selectedPaymentMethod === "Mercado Pago"}
               tabIndex={0}
-              className="group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md border border-gray-200 bg-white p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3"
+              onClick={() => setSelectedPaymentMethod("Mercado Pago")}
+              className={`group relative flex h-full min-h-[70px] sm:min-h-[80px] cursor-pointer items-start gap-1.5 sm:gap-2 rounded-md p-2 sm:p-2.5 transition-all focus-visible:ring-2 focus-visible:ring-ring max-md:flex-col max-md:justify-between md:items-center md:gap-3 md:p-3 ${
+                selectedPaymentMethod === "Mercado Pago" 
+                  ? "border-2 border-red-500 bg-red-50" 
+                  : "border border-gray-200 bg-white hover:border-red-300"
+              }`}
             >
               <div className="shrink-0">
                 <img
@@ -1601,35 +1865,55 @@ export default function HomePage() {
                     <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
                       + Bônus 
                       <img 
-                        alt="Diamante" 
-                        data-ai-hint="diamond gem" 
+                        alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                        data-ai-hint="coin" 
                         loading="lazy" 
                         width="12" 
                         height="12" 
                         decoding="async" 
                         data-nimg="1" 
                         className="mx-1 h-3 w-3 object-contain" 
-                        src="/images/point.webp" 
+                        src={currentConfig.coinIcon}
                         style={{ color: "transparent" }}
                       />
                       {calculatePrice(selectedRechargeValue).bonus}
                     </span>
                   </div>
                 )}
+                {selectedSpecialOffer && (selectedGame === 'haikyu' || selectedGame === 'deltaforce') && getSpecialOfferBonus(selectedSpecialOffer) > 0 && (
+                  <div className="flex flex-wrap gap-y-1 empty:hidden md:gap-y-2">
+                    <span className="inline-flex items-center text-xs/none text-red-500 md:text-sm/none">
+                      + Bônus 
+                      <img 
+                        alt={selectedGame === 'deltaforce' ? 'Coins' : 'Diamantes Estelares'}
+                        data-ai-hint="coin" 
+                        loading="lazy" 
+                        width="12" 
+                        height="12" 
+                        decoding="async" 
+                        data-nimg="1" 
+                        className="mx-1 h-3 w-3 object-contain" 
+                        src={currentConfig.coinIcon}
+                        style={{ color: "transparent" }}
+                      />
+                      {getSpecialOfferBonus(selectedSpecialOffer)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="absolute end-[2px] top-[2px] sm:end-[3px] sm:top-[3px] overflow-hidden rounded-[3px]">
-                <div className="flex text-[8px] sm:text-[10px] font-bold uppercase leading-none">
+                <div className="flex text-[9px] sm:text-[11px] font-bold uppercase leading-none">
                   <div className="flex items-center gap-0.5 sm:gap-1 bg-destructive p-0.5 pr-0.5 sm:pr-1 text-white">
                     <img
-                      alt="Diamante"
-                      data-ai-hint="diamond gem"
+                      alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                      data-ai-hint="coin"
                       loading="lazy"
                       width="12"
                       height="12"
                       decoding="async"
                       data-nimg="1"
-                      className="h-2 w-2 sm:h-3 sm:w-3 rounded-sm bg-white object-contain p-0.5"
-                      src="/images/point.webp"
+                      className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 rounded-sm bg-white object-contain p-0.5"
+                      src={currentConfig.coinIcon}
                       style={{ color: "transparent" }}
                     />
                     <span>Promo</span>
@@ -1648,15 +1932,15 @@ export default function HomePage() {
                   <>
                     <div className="flex items-center gap-1 text-sm/none font-bold md:text-end md:text-base/none">
                       <img 
-                        alt="Diamante" 
-                        data-ai-hint="diamond gem" 
+                        alt={selectedGame === 'freefire' ? 'Diamante' : selectedGame === 'deltaforce' ? 'Delta Coin' : 'Haikyu Coin'}
+                        data-ai-hint="coin" 
                         loading="lazy" 
                         width="16" 
                         height="16" 
                         decoding="async" 
                         data-nimg="1" 
                         className="h-4 w-4 object-contain" 
-                        src="/images/point.webp"
+                        src={currentConfig.coinIcon}
                         style={{ color: "transparent" }}
                       />
                       <span dir="ltr">{selectedRechargeValue} + {calculatePrice(selectedRechargeValue).bonus}</span>
@@ -1671,6 +1955,24 @@ export default function HomePage() {
                     <div className="flex items-center gap-1 text-sm/none font-bold md:text-end md:text-base/none">
                       <span dir="ltr">{selectedSpecialOffer}</span>
                     </div>
+                    {(selectedGame === 'haikyu' || selectedGame === 'deltaforce') && selectedSpecialOffer && getSpecialOfferBonus(selectedSpecialOffer) > 0 && (
+                      <div className="mt-1 flex items-center gap-1 text-xs/none md:text-sm/none text-red-500">
+                        <span>+ Bônus</span>
+                        <img 
+                          alt={selectedGame === 'deltaforce' ? 'Coins' : 'Diamantes Estelares'}
+                          data-ai-hint="coin" 
+                          loading="lazy" 
+                          width="12" 
+                          height="12" 
+                          decoding="async" 
+                          data-nimg="1" 
+                          className="h-3 w-3 object-contain" 
+                          src={currentConfig.coinIcon}
+                          style={{ color: "transparent" }}
+                        />
+                        <span>{getSpecialOfferBonus(selectedSpecialOffer)}</span>
+                      </div>
+                    )}
                     <div className="mt-2 flex items-center gap-1 text-sm/none md:text-end md:text-base/none">
                       <span className="font-medium text-gray-600">Total:</span>
                       <span className="font-bold text-destructive">R$ {getSpecialOfferPrice(selectedSpecialOffer!).toFixed(2).replace(".", ",")}</span>
@@ -1699,13 +2001,86 @@ export default function HomePage() {
 
         </div>
 
-        {/* Footer Fixo */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 p-3 safe-area-bottom">
-          <div className="text-center">
-            <p className="text-xs text-gray-500">© Garena Online. Todos os direitos reservados.</p>
-            <p className="text-[10px] text-gray-400 mt-1">Recarga Jogo BR</p>
+        {/* Footer */}
+        <footer className="bg-[#EFEFEF] text-gray-600">
+          <div className="container mx-auto max-w-5xl px-4">
+            <div className="flex flex-col items-center gap-3 p-4 text-center text-xs md:items-start max-md:pb-5">
+              <div className="flex flex-col items-center gap-3 leading-none md:w-full md:flex-row md:justify-between">
+                <div className="md:text-start">© 2025 Garena Online. Todos os direitos reservados.</div>
+                <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-4 gap-y-1">
+                  <a href="#" className="transition-opacity hover:opacity-70">FAQ</a>
+                  <div className="h-3 w-px bg-gray-300"></div>
+                  <a href="https://www.recargajogo.eu/legal/tos?utm_source=organicjLj68e076949be15d3367c027e6&utm_campaign=&utm_medium=&utm_content=&utm_term=" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-70">Termos e Condições</a>
+                  <div className="h-3 w-px bg-gray-300"></div>
+                  <a href="https://www.recargajogo.eu/legal/pp?utm_source=organicjLj68e076949be15d3367c027e6&utm_campaign=&utm_medium=&utm_content=&utm_term=" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-70">Política de Privacidade</a>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </footer>
+
+        {/* Modal de Tutorial */}
+        {showTutorialModal && (
+          <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4" onClick={() => setShowTutorialModal(false)}>
+            <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Como encontrar seu ID - {selectedGame === 'freefire' ? 'Free Fire' : selectedGame === 'deltaforce' ? 'Delta Force' : 'Haikyu'}
+                  </h3>
+                  <button onClick={() => setShowTutorialModal(false)} className="text-gray-400 hover:text-gray-600">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {selectedGame === 'freefire' && (
+                    <div>
+                      <p className="text-sm text-gray-700 mb-3">
+                        Veja onde encontrar seu ID no Free Fire:
+                      </p>
+                      <img src="/images/tutorialff.jpg" alt="Tutorial Free Fire" className="w-full rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                  
+                  {selectedGame === 'deltaforce' && (
+                    <div>
+                      <p className="text-sm text-gray-700 mb-3">
+                        Veja onde encontrar seu ID no Delta Force:
+                      </p>
+                      <img src="/images/tutorialdf.jpg" alt="Tutorial Delta Force" className="w-full rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                  
+                  {selectedGame === 'haikyu' && (
+                    <div>
+                      <p className="text-sm text-gray-700 mb-3 font-semibold">
+                        Como encontrar seu ID no Haikyu:
+                      </p>
+                      <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                        <li>Clique no seu <strong>perfil/profile</strong> dentro do jogo</li>
+                        <li>Ao lado da sua foto você verá o <strong>ID</strong></li>
+                        <li>Clique no ID para copiar automaticamente</li>
+                        <li>Cole o ID copiado no campo de login acima</li>
+                      </ol>
+                    </div>
+                  )}
+                  
+                 
+                </div>
+                
+                <button
+                  onClick={() => setShowTutorialModal(false)}
+                  className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  Entendi
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal de Login Social Indisponível */}
         {showSocialError && (

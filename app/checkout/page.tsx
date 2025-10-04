@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import Toast from "../../components/toast"
@@ -13,6 +13,8 @@ export default function CheckoutPage() {
   const { utmParams } = useUtmParams()
 
   const [playerName, setPlayerName] = useState("")
+  const [playerNickname, setPlayerNickname] = useState("")
+  const [processingProgress, setProcessingProgress] = useState(0)
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
@@ -30,16 +32,69 @@ export default function CheckoutPage() {
   const [timeLeft, setTimeLeft] = useState(15 * 60) // 15 minutos em segundos
   const [timerActive, setTimerActive] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'expired'>('pending')
+  const [showPromoModal, setShowPromoModal] = useState(false)
+  const [selectedPromos, setSelectedPromos] = useState<string[]>([])
 
   // Get URL parameters
-  const itemType = searchParams.get("itemType") || "recharge"
-  const itemValue = searchParams.get("itemValue") || "1.060"
+  const itemType = searchParams.get("type") || searchParams.get("itemType") || "recharge"
+  const itemValue = searchParams.get("value") || searchParams.get("itemValue") || "1.060"
+  const itemBonus = searchParams.get("bonus") || "0"
   const playerId = searchParams.get("playerId") || ""
   const price = searchParams.get("price") || "14.24"
   const paymentMethod = searchParams.get("paymentMethod") || "PIX"
+  const gameApp = searchParams.get("app") || "100067" // Detectar qual jogo
+  
+  // Determinar qual jogo baseado no app
+  const currentGame = gameApp === "100157" ? "deltaforce" : gameApp === "haikyu" ? "haikyu" : "freefire"
+  
+  // Configuração por jogo
+  const gameConfig = {
+    freefire: {
+      banner: "/images/checkout-banner.webp",
+      icon: "/images/icon.webp",
+      coinIcon: "https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png",
+      name: "Free Fire",
+      coinName: "Diamantes",
+      showOrderBump: true,
+      showNickname: true
+    },
+    deltaforce: {
+      banner: "/images/backgroundDelta.jpg",
+      icon: "/images/iconeusuarioDeltaForce.png",
+      coinIcon: "/images/IconeCoinsDF.png",
+      name: "Delta Force",
+      coinName: "Coins",
+      showOrderBump: false,
+      showNickname: false
+    },
+    haikyu: {
+      banner: "/images/backgroundHiuki.jpg",
+      icon: "/images/HAIKIU FLY HIGH.png",
+      coinIcon: "/images/iconCoinHaikyu.png",
+      name: "HAIKYU!! FLY HIGH",
+      coinName: "Diamantes Estelares",
+      showOrderBump: false,
+      showNickname: false
+    }
+  }
+  
+  const config = gameConfig[currentGame as keyof typeof gameConfig]
 
   useEffect(() => {
     setPlayerName(playerId)
+    
+    // Buscar nickname do jogador do localStorage
+    const storedUserData = localStorage.getItem('userData')
+    if (storedUserData) {
+      try {
+        const userData = JSON.parse(storedUserData)
+        if (userData.nickname) {
+          setPlayerNickname(userData.nickname)
+        }
+      } catch (error) {
+        // Erro ao recuperar nickname
+      }
+    }
     
     // Capturar parâmetros UTM da URL atual e do sessionStorage
     const urlParams = new URLSearchParams(window.location.search)
@@ -86,12 +141,7 @@ export default function CheckoutPage() {
     utmData.current_page = 'checkout'
     utmData.referrer = document.referrer || 'direct'
     
-    // Debug temporário - verificar captura de UTMs
-    if (Object.keys(utmData).filter(key => key.startsWith('utm_')).length > 0) {
-      console.log('✅ UTM Parameters detectados:', utmData)
-    } else {
-      console.log('⚠️ Nenhum UTM parameter detectado. URL atual:', window.location.href)
-    }
+    // UTM Parameters capturados
     
     setUtmParameters(utmData)
   }, [playerId, utmParams])
@@ -121,6 +171,29 @@ export default function CheckoutPage() {
     router.back()
   }
 
+  const promoItems = [
+    { id: 'sombra-roxa', name: 'Sombra Roxa', image: '/images/sombraRoxa.png', oldPrice: 99.99, price: 9.99 },
+    { id: 'barba-velho', name: 'Barba do Velho', image: '/images/Barba do Velho.png', oldPrice: 99.99, price: 12.99 },
+    { id: 'pacote-coelhao', name: 'Pacote Coelhão', image: '/images/Pacote Coelhão.png', oldPrice: 49.99, price: 9.99 },
+    { id: 'calca-angelical', name: 'Calça Angelical Azul', image: '/images/Calça Angelical Azul.png', oldPrice: 149.90, price: 24.80 },
+    { id: 'dunk-master', name: 'Dunk Master', image: '/images/Dunk Master.png', oldPrice: 75.90, price: 9.99 }
+  ]
+
+  const togglePromoItem = (itemId: string) => {
+    setSelectedPromos(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    )
+  }
+
+  const getPromoTotal = () => {
+    return selectedPromos.reduce((total, itemId) => {
+      const item = promoItems.find(p => p.id === itemId)
+      return total + (item?.price || 0)
+    }, 0)
+  }
+
   const handleProceedToPayment = async () => {
     if (isProcessingPayment) {
       return
@@ -136,17 +209,33 @@ export default function CheckoutPage() {
       return
     }
 
+    // Mostrar modal de promoção apenas para Free Fire
+    if (config.showOrderBump) {
+      setShowPromoModal(true)
+    } else {
+      // Para Delta Force e Haikyu, ir direto para finalizar
+      handleFinalizeOrder()
+    }
+  }
+
+  const handleFinalizeOrder = async () => {
+    setShowPromoModal(false)
     setIsProcessingPayment(true)
     setShowPixInline(true)
     setPixError("")
     
     try {
+      // Calcular valor total com promoções
+      const basePrice = getFinalPrice()
+      const promoTotal = getPromoTotal()
+      const totalPrice = basePrice + promoTotal
+      
       // Gerar PIX
       const response = await fetch('/api/generate-pix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: Math.round(getFinalPrice() * 100),
+          amount: Math.round(totalPrice * 100),
           utmParams: utmParameters,
           playerId: playerId,
           itemType: itemType,
@@ -295,7 +384,7 @@ export default function CheckoutPage() {
     }
   }, [timerActive, timeLeft])
 
-  // Polling para verificar status do pagamento a cada 7 segundos
+  // Polling para verificar status do pagamento a cada 10 segundos
   useEffect(() => {
     let statusInterval: NodeJS.Timeout
     
@@ -316,16 +405,32 @@ export default function CheckoutPage() {
               setTimerActive(false)
               
               // Mostrar mensagem de sucesso
-              showToastMessage('🎉 Pagamento confirmado! Seus diamantes serão creditados em breve.', 'success')
+              showToastMessage(`🎉 Pagamento confirmado! Seus ${config.coinName.toLowerCase()} serão creditados em breve.`, 'success')
               
-              console.log('✅ Pagamento confirmado via polling!')
+              // Iniciar animação da barra de progresso (5-10 minutos)
+              const randomMinutes = Math.floor(Math.random() * 6) + 5 // 5 a 10 minutos
+              const totalDuration = randomMinutes * 60 * 1000 // Converter para milissegundos
+              const intervalTime = totalDuration / 100 // Dividir em 100 steps
+              
+              let progress = 0
+              const progressInterval = setInterval(() => {
+                progress += 1
+                setProcessingProgress(progress)
+                if (progress >= 100) {
+                  clearInterval(progressInterval)
+                  // Mostrar alerta quando completar
+                  showToastMessage('✅ Diamantes creditados! Aproveite o jogo!', 'success')
+                }
+              }, intervalTime)
+              
+              // Enviar para UTMify com status PAID
+              await sendToUtmifyPaid(pixData.transactionId)
             }
           }
         } catch (error) {
           // Erro silencioso no polling
-          console.warn('Erro no polling de status:', error)
         }
-      }, 7000) // Verificar a cada 7 segundos
+      }, 10000) // Verificar a cada 10 segundos
     }
     
     return () => {
@@ -341,15 +446,66 @@ export default function CheckoutPage() {
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
-  // Função para enviar dados para UTMify (apenas pending no checkout)
+  // Função auxiliar para calcular comissão BlackCat
+  const calculateCommission = (totalPriceInCents: number) => {
+    const FEE_PERCENT = 0.0699      // 6.99%
+    const FEE_FIXED = 200           // R$ 2,00
+    
+    const gatewayFeeInCents = Math.round(totalPriceInCents * FEE_PERCENT) + FEE_FIXED
+    const userCommissionInCents = totalPriceInCents - gatewayFeeInCents
+    
+    return {
+      totalPriceInCents,
+      gatewayFeeInCents,
+      userCommissionInCents
+    }
+  }
+
+  // Função para capturar IP real do cliente
+  const getClientIP = async (): Promise<string> => {
+    try {
+      const response = await fetch('https://ipinfo.io/?token=32090226b9d116')
+      if (response.ok) {
+        const data = await response.json()
+        return data.ip
+      }
+    } catch (error) {
+      // Erro ao capturar IP
+    }
+    return 'unknown'
+  }
+
+  // Função para enviar dados para UTMify (PENDING)
   const sendToUtmify = async (status: 'pending', transactionData: any) => {
     try {
-      // Criar dados no formato do UTMify (mesmo formato do webhook)
+      // Capturar IP real
+      const clientIp = await getClientIP()
+      
+      // Calcular comissão real com orderbump
+      const basePrice = getFinalPrice()
+      const promoTotal = getPromoTotal()
+      const totalPrice = basePrice + promoTotal
+      const totalPriceInCents = Math.round(totalPrice * 100)
+      const commission = calculateCommission(totalPriceInCents)
+      
+      // Criar produto único com valor total
+      const products = [
+        {
+          id: `recarga-${transactionData.transactionId}`,
+          name: itemType === "recharge" ? `Recarga Free Fire - ${itemValue} Diamantes` : itemValue,
+          planId: null,
+          planName: null,
+          quantity: 1,
+          priceInCents: totalPriceInCents
+        }
+      ]
+      
+      // Criar dados no formato do UTMify
       const utmifyData = {
         orderId: transactionData.transactionId,
         platform: "RecarGames",
         paymentMethod: "pix",
-        status: "waiting_payment", // Status UTMify para pending
+        status: "waiting_payment",
         createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
         approvedDate: null,
         refundedAt: null,
@@ -359,18 +515,9 @@ export default function CheckoutPage() {
           phone: getPhoneNumbers(phone),
           document: cpf.replace(/\D/g, ""),
           country: "BR",
-          ip: "unknown"
+          ip: clientIp
         },
-        products: [
-          {
-            id: `recarga-${transactionData.transactionId}`,
-            name: "Recarga Free Fire",
-            planId: null,
-            planName: null,
-            quantity: 1,
-            priceInCents: Math.round(getFinalPrice() * 100)
-          }
-        ],
+        products: products,
         trackingParameters: {
           src: utmParameters.src || null,
           sck: utmParameters.sck || null,
@@ -387,11 +534,7 @@ export default function CheckoutPage() {
           gad_source: utmParameters.gad_source || null,
           gbraid: utmParameters.gbraid || null
         },
-        commission: {
-          totalPriceInCents: Math.round(getFinalPrice() * 100),
-          gatewayFeeInCents: Math.round(getFinalPrice() * 100),
-          userCommissionInCents: Math.round(getFinalPrice() * 100)
-        },
+        commission: commission,
         isTest: process.env.NEXT_PUBLIC_UTMIFY_TEST_MODE === 'true'
       }
 
@@ -401,13 +544,88 @@ export default function CheckoutPage() {
         body: JSON.stringify(utmifyData)
       })
       
-      if (response.ok) {
-        console.log('✅ UTMify: Lead (pending) enviado com sucesso')
-      } else {
-        console.warn('⚠️ UTMify: Erro ao enviar lead')
+      if (!response.ok) {
+        // Erro ao enviar PENDING
       }
     } catch (error) {
-      console.warn('⚠️ UTMify: Erro de conexão', error)
+      // Erro de conexão
+    }
+  }
+
+  // Função para enviar dados para UTMify (PAID)
+  const sendToUtmifyPaid = async (transactionId: string) => {
+    try {
+      // Capturar IP real
+      const clientIp = await getClientIP()
+      
+      // Calcular comissão real com orderbump
+      const basePrice = getFinalPrice()
+      const promoTotal = getPromoTotal()
+      const totalPrice = basePrice + promoTotal
+      const totalPriceInCents = Math.round(totalPrice * 100)
+      const commission = calculateCommission(totalPriceInCents)
+      
+      // Criar produto único com valor total
+      const products = [
+        {
+          id: `recarga-${transactionId}`,
+          name: itemType === "recharge" ? `Recarga Free Fire - ${itemValue} Diamantes` : itemValue,
+          planId: null,
+          planName: null,
+          quantity: 1,
+          priceInCents: totalPriceInCents
+        }
+      ]
+      
+      // Criar dados no formato do UTMify
+      const utmifyData = {
+        orderId: transactionId,
+        platform: "RecarGames",
+        paymentMethod: "pix",
+        status: "paid",
+        createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        approvedDate: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        refundedAt: null,
+        customer: {
+          name: fullName,
+          email: email,
+          phone: getPhoneNumbers(phone),
+          document: cpf.replace(/\D/g, ""),
+          country: "BR",
+          ip: clientIp
+        },
+        products: products,
+        trackingParameters: {
+          src: utmParameters.src || null,
+          sck: utmParameters.sck || null,
+          utm_source: utmParameters.utm_source || null,
+          utm_campaign: utmParameters.utm_campaign || null,
+          utm_medium: utmParameters.utm_medium || null,
+          utm_content: utmParameters.utm_content || null,
+          utm_term: utmParameters.utm_term || null,
+          gclid: utmParameters.gclid || null,
+          xcod: utmParameters.xcod || null,
+          keyword: utmParameters.keyword || null,
+          device: utmParameters.device || null,
+          network: utmParameters.network || null,
+          gad_source: utmParameters.gad_source || null,
+          gbraid: utmParameters.gbraid || null
+        },
+        commission: commission,
+        isTest: process.env.NEXT_PUBLIC_UTMIFY_TEST_MODE === 'true'
+      }
+
+      const response = await fetch('/api/utmify-track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(utmifyData)
+      })
+      
+      if (!response.ok) {
+        // Erro ao enviar PAID
+      }
+    } catch (error) {
+      // Erro de conexão
     }
   }
 
@@ -428,58 +646,145 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div className="relative">
-        <div className="w-full h-32 sm:h-48 md:h-64">
-          <img src="/images/checkout-banner.webp" alt="Free Fire Banner" className="w-full h-full object-cover" />
-        </div>
-
+      {/* Background Banner */}
+      <div className="relative w-full" style={{ height: '180px' }}>
+        <img 
+          src={config.banner} 
+          alt={`${config.name} Banner`} 
+          className="w-full h-banner-custom object-cover"
+        />
+        
         <button
           onClick={handleBack}
-          className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+          className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all z-10"
         >
           <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
 
-      <div className="text-center py-4 sm:py-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Free Fire</h2>
+      {/* Ícone e Título */}
+      <div className="relative flex flex-col items-center bg-white" style={{ marginTop: '-32px' }}>
+        <div className="w-16-custom h-16-custom mb-3 relative" style={{
+          border: '1px solid white',
+          borderRadius: '15px',
+          padding: '4px',
+          backgroundColor: 'white',
+          marginTop: '-110px',
+          width: '70px',
+
+        }}>
+          <img src={config.icon} alt={`${config.name} Icon`} className="w-full h-full object-contain" style={{ borderRadius: '8px' }} />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 whitespace-pre-line text-center">{config.name}</h2>
+        <div className="h-4"></div>
       </div>
 
       <div className="max-w-2xl mx-auto px-3 sm:px-4 pb-4 sm:pb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
-          {itemType === "recharge" ? (
-            <>
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <span className="text-gray-600 text-sm sm:text-base">Total</span>
-                <div className="flex items-center gap-2">
-                  <img
-                    src="https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png"
-                    alt="Diamante"
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                  />
-                  <span className="font-bold text-base sm:text-lg">
-                    {calculateDiamondDetails(itemValue!).total.toLocaleString()}
-                  </span>
-                </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
+          <dl className="mb-3 grid grid-cols-2 justify-between gap-x-3.5 px-4 md:mb-4 md:px-10">
+            {/* Produto Selecionado */}
+            <dt className="col-span-2 py-3 text-sm/none text-gray-800 md:text-base/none">
+              Produto Selecionado: <span className="font-bold">{itemType === "recharge" ? `${itemValue} ${config.coinName}` : itemValue}</span>
+            </dt>
+            
+            {/* Informação sobre os diamantes/coins */}
+            {itemType === "recharge" && (
+              <div className="col-span-2 mb-1 text-xs/normal text-gray-500 md:text-sm/normal">
+                Os {config.coinName.toLowerCase()} são válidos apenas para a região do Brasil e serão creditados diretamente na conta de jogo.
               </div>
-            </>
-          ) : (
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <span className="text-gray-600 text-sm sm:text-base">Oferta Especial</span>
-              <span className="font-bold text-base sm:text-lg">{itemValue}</span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between text-lg sm:text-xl font-bold border-t pt-3 sm:pt-4">
-            <span>Preço</span>
-            <span>
-              {formatPrice(getFinalPrice().toString())}
-            </span>
-          </div>
+            )}
+            
+            {/* Total e Bônus para Recharge */}
+            {itemType === "recharge" && (
+              <>
+                <dt className="py-3 text-sm/none text-gray-600 md:text-base/none">Total {config.coinName}</dt>
+                <dd className="flex items-center justify-end gap-1 py-3 text-end text-sm/none font-medium text-gray-800 md:text-base/none">
+                  <img
+                    src={config.coinIcon}
+                    alt={config.coinName}
+                    className="w-4 h-4"
+                  />
+                  {itemValue?.replace(/\./g, '').replace(/,/g, '')}
+                </dd>
+                
+                {parseInt(itemBonus) > 0 && (
+                  <>
+                    <dt className="py-3 text-sm/none text-gray-600 md:text-base/none">Bônus</dt>
+                    <dd className="flex items-center justify-end gap-1 py-3 text-end text-sm/none font-medium text-red-600 md:text-base/none">
+                      <img
+                        src={config.coinIcon}
+                        alt={config.coinName}
+                        className="w-4 h-4"
+                      />
+                      +{parseInt(itemBonus).toLocaleString()}
+                    </dd>
+                  </>
+                )}
+              </>
+            )}
+            
+            {/* Bônus para Ofertas Especiais */}
+            {itemType === "special" && parseInt(itemBonus) > 0 && (
+              <>
+                <dt className="py-3 text-sm/none text-gray-600 md:text-base/none">Bônus {config.coinName}</dt>
+                <dd className="flex items-center justify-end gap-1 py-3 text-end text-sm/none font-medium text-red-600 md:text-base/none">
+                  <img
+                    src={config.coinIcon}
+                    alt={config.coinName}
+                    className="w-4 h-4"
+                  />
+                  +{parseInt(itemBonus).toLocaleString()}
+                </dd>
+              </>
+            )}
+            
+            {/* Itens do Orderbump */}
+            {selectedPromos.length > 0 && (
+              <>
+                <dt className="col-span-2 py-3 text-sm/none font-semibold text-gray-800 md:text-base/none border-t pt-4">
+                  Itens Adicionais:
+                </dt>
+                {selectedPromos.map(promoId => {
+                  const item = promoItems.find(p => p.id === promoId)
+                  return item ? (
+                    <React.Fragment key={promoId}>
+                      <dt className="py-2 text-sm/none text-gray-600 md:text-base/none">
+                        <div className="flex items-center gap-2">
+                          <img src={item.image} alt={item.name} className="w-8 h-8 rounded object-cover" />
+                          {item.name}
+                        </div>
+                      </dt>
+                      <dd className="flex items-center justify-end gap-1 py-2 text-end text-sm/none font-medium text-gray-800 md:text-base/none">
+                        {formatPrice(item.price.toString())}
+                      </dd>
+                    </React.Fragment>
+                  ) : null
+                })}
+              </>
+            )}
+            
+            {/* Preço Total */}
+            <dt className="py-3 text-sm/none text-gray-600 md:text-base/none border-t font-semibold">Total</dt>
+            <dd className="flex items-center justify-end gap-1 py-3 text-end text-sm/none font-bold text-gray-800 md:text-base/none border-t">
+              {formatPrice((getFinalPrice() + getPromoTotal()).toString())}
+            </dd>
+            
+            {/* Método de pagamento */}
+            <dt className="py-3 text-sm/none text-gray-600 md:text-base/none">Método de pagamento</dt>
+            <dd className="flex items-center justify-end gap-1 py-3 text-end text-sm/none font-medium text-gray-800 md:text-base/none">
+              PIX
+            </dd>
+            
+            {/* Nome do Jogador */}
+            <dt className="py-3 text-sm/none text-gray-600 md:text-base/none">Nome do Jogador</dt>
+            <dd className="flex items-center justify-end gap-1 py-3 text-end text-sm/none font-medium text-gray-800 md:text-base/none">
+              {config.showNickname ? (playerNickname || playerId || 'N/A') : (playerId || 'N/A')}
+            </dd>
+          </dl>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
-          {!showPixInline ? (
+          {!pixData ? (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
@@ -487,7 +792,8 @@ export default function CheckoutPage() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  disabled={isProcessingPayment}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Digite seu nome completo"
                 />
               </div>
@@ -498,7 +804,8 @@ export default function CheckoutPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  disabled={isProcessingPayment}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="seu@email.com"
                 />
               </div>
@@ -509,7 +816,8 @@ export default function CheckoutPage() {
                   type="tel"
                   value={phone}
                   onChange={handlePhoneChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  disabled={isProcessingPayment}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="(11) 99999-9999"
                 />
               </div>
@@ -520,7 +828,8 @@ export default function CheckoutPage() {
                   type="text"
                   value={cpf}
                   onChange={handleCpfChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  disabled={isProcessingPayment}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="000.000.000-00"
                 />
                 {cpf && !validateCpf(cpf) && (
@@ -530,12 +839,7 @@ export default function CheckoutPage() {
             </div>
           ) : (
             <div className="flex w-full flex-col">
-              {isProcessingPayment ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Gerando pagamento PIX...</p>
-                </div>
-              ) : pixError ? (
+              {pixError ? (
                 <div className="text-center py-6">
                   <p className="text-red-600 mb-4">{pixError}</p>
                   <button
@@ -551,156 +855,193 @@ export default function CheckoutPage() {
                 </div>
               ) : pixData ? (
                 <>
-                  {/* Título */}
-                  <div className="text-center text-lg font-medium text-gray-800 mb-4">Pague com Pix</div>
-                  
-                  {/* QR Code */}
-                  <div className="my-3 flex h-[150px] w-full items-center justify-center">
-                    {qrCodeImage ? (
-                      <img 
-                        src={qrCodeImage} 
-                        alt="QR Code Pix" 
-                        width="150" 
-                        height="150" 
-                        className="rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-[150px] h-[150px] bg-gray-200 rounded-lg flex items-center justify-center">
-                        <span className="text-gray-500 text-sm">Gerando QR Code...</span>
-                      </div>
-                    )}
-                  </div>
+                  {paymentStatus === 'paid' ? (
+                    /* Pagamento Confirmado - Layout com Fila */
+                    <>
+                      <div className="mb-6 p-6">
+                        <div className="flex flex-col items-center text-center">
+                          <h3 className="text-1xl font-bold text-gray-500 mb-2">🎉 Pagamento Confirmado!</h3>
+                          <p className="text-sm text-gray-600 mb-4">
+                            Não se preocupe! Estamos com uma grande demanda no momento.
+                          </p>
+                          
+                          {/* Barra de Progresso */}
+                          <div className="w-full mb-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-gray-600">Processando sua recarga...</span>
+                              <span className="text-xs font-semibold text-red-600">{processingProgress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                              <div 
+                                className="bg-gradient-to-r from-red-400 to-red-600 h-3 rounded-full transition-all duration-500 ease-out relative overflow-hidden"
+                                style={{ width: `${processingProgress}%` }}
+                              >
+                                <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
+                              </div>
+                            </div>
+                          </div>
 
-                  {/* Informações da empresa */}
-                  <div className="text-center text-gray-500 text-sm mb-4">
-                    KAPTPAY TECNOLOGIA DE PAGAMENTOS<br/>
-                    CNPJ: 62.912.988/0001-12
-                  </div>
-
-                  {/* Código PIX */}
-                  <div className="mb-4 mt-3 select-all break-words rounded-md bg-gray-100 p-4 text-sm text-gray-800">
-                    {pixData.code}
-                  </div>
-
-                  {/* Botão Copiar */}
-                  <button
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(pixData.code)
-                        setIsCopied(true)
-                        setTimeout(() => setIsCopied(false), 2000)
-                      } catch (error) {
-                        // Fallback para dispositivos que não suportam clipboard API
-                        const textArea = document.createElement('textarea')
-                        textArea.value = pixData.code
-                        document.body.appendChild(textArea)
-                        textArea.select()
-                        document.execCommand('copy')
-                        document.body.removeChild(textArea)
-                        setIsCopied(true)
-                        setTimeout(() => setIsCopied(false), 2000)
-                      }
-                    }}
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors bg-red-500 text-white hover:bg-red-600 px-4 py-2 mb-6 h-11 text-base font-bold w-full"
-                  >
-                    {isCopied ? 'Copiado!' : 'Copiar Código'}
-                  </button>
-
-                  {/* Timer/Alerta */}
-                  <div role="alert" className="relative rounded-lg border p-4 bg-background text-foreground text-left w-full mb-4">
-                    <div className="flex items-start gap-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                        <path d="M5 22h14"></path>
-                        <path d="M5 2h14"></path>
-                        <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"></path>
-                        <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"></path>
-                      </svg>
-                      <div>
-                        <h5 className="mb-1 font-medium leading-none tracking-tight">Aguardando pagamento</h5>
-                        <div className="text-sm">
-                          {timerActive ? (
-                            <>Você tem <span className="font-bold text-red-600">{formatTime(timeLeft)}</span> para pagar. Após o pagamento, os diamantes podem levar alguns minutos para serem creditados.</>
-                          ) : timeLeft === 0 ? (
-                            <span className="text-red-600 font-medium">Tempo expirado. Gere um novo PIX para continuar.</span>
-                          ) : (
-                            "Você tem tempo para pagar. Após o pagamento, os diamantes podem levar alguns minutos para serem creditados."
-                          )}
+                          <p className="text-xs text-gray-600 leading-relaxed">
+                            Assim que a barra carregar completamente, {itemType === "recharge" ? `seus ${config.coinName.toLowerCase()} estarão na sua conta` : "seus itens estarão disponíveis"}! 🚀<br/>
+                            Você pode jogar um pouco enquanto aguarda, te avisaremos por aqui quando estiver pronto. 🎮
+                          </p>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Instruções de pagamento */}
-                  <div className="text-gray-500 text-sm space-y-4">
-                    <p className="font-semibold">Para realizar o pagamento siga os passos abaixo:</p>
-                    <ol className="list-decimal list-inside space-y-2 pl-2">
-                      <li>Abra o app ou o site da sua instituição financeira e seleciona o Pix.</li>
-                      <li>Utilize as informações acima para realizar o pagamento.</li>
-                      <li>Revise as informações e pronto!</li>
-                    </ol>
-                    <p>Seu pedido está sendo processado pelo nosso parceiro KAPTPAY.</p>
-                    <p>Você receberá seus diamantes após recebermos a confirmação do pagamento. Isso ocorre geralmente em alguns minutos após a realização do pagamento na sua instituição financeira.</p>
-                    <p>Em caso de dúvidas entre em contato com o suporte.</p>
-                  </div>
-
-                  {/* Status do Pagamento */}
-                  {paymentStatus === 'paid' && (
-                    <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center gap-2 text-green-800">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span className="font-medium">🎉 Pagamento Confirmado!</span>
+                    </>
+                  ) : (
+                    /* Aguardando Pagamento - Layout Completo */
+                    <>
+                      {/* Título */}
+                      <div className="text-center text-lg font-medium text-gray-800 mb-4">Pague com Pix</div>
+                      
+                      {/* QR Code */}
+                      <div className="my-3 flex h-[150px] w-full items-center justify-center">
+                        {qrCodeImage ? (
+                          <img 
+                            src={qrCodeImage} 
+                            alt="QR Code Pix" 
+                            width="150" 
+                            height="150" 
+                            className="rounded-lg"
+                          />
+                        ) : (
+                          <div className="w-[150px] h-[150px] bg-gray-200 rounded-lg flex items-center justify-center">
+                            <span className="text-gray-500 text-sm">Gerando QR Code...</span>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm text-green-700 mt-1">
-                        Seus diamantes serão creditados na sua conta em alguns minutos.
-                      </p>
-                    </div>
+
+                      {/* Informações da empresa */}
+                      <div className="text-center text-gray-500 text-sm mb-4">
+                        KAPTPAY TECNOLOGIA DE PAGAMENTOS<br/>
+                        CNPJ: 62.912.988/0001-12
+                      </div>
+
+                      {/* Código PIX */}
+                      <div className="mb-4 mt-3 select-all break-words rounded-md bg-gray-100 p-4 text-sm text-gray-800">
+                        {pixData.code}
+                      </div>
+
+                      {/* Botão Copiar */}
+                      <button
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(pixData.code)
+                            setIsCopied(true)
+                            setTimeout(() => setIsCopied(false), 2000)
+                          } catch (error) {
+                            // Fallback para dispositivos que não suportam clipboard API
+                            const textArea = document.createElement('textarea')
+                            textArea.value = pixData.code
+                            document.body.appendChild(textArea)
+                            textArea.select()
+                            document.execCommand('copy')
+                            document.body.removeChild(textArea)
+                            setIsCopied(true)
+                            setTimeout(() => setIsCopied(false), 2000)
+                          }
+                        }}
+                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors bg-red-500 text-white hover:bg-red-600 px-4 py-2 mb-6 h-11 text-base font-bold w-full"
+                      >
+                        {isCopied ? 'Copiado!' : 'Copiar Código'}
+                      </button>
+
+                      {/* Timer/Alerta */}
+                      <div role="alert" className="relative rounded-lg border p-4 bg-blue-50 border-blue-200 text-left w-full mb-4">
+                        <div className="flex items-start gap-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-600">
+                            <path d="M5 22h14"></path>
+                            <path d="M5 2h14"></path>
+                            <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"></path>
+                            <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"></path>
+                          </svg>
+                          <div>
+                            <h5 className="mb-1 font-medium leading-none tracking-tight text-blue-800">Aguardando pagamento</h5>
+                            <div className="text-sm text-blue-700">
+                              {timerActive ? (
+                                <>Você tem <span className="font-bold text-red-600">{formatTime(timeLeft)}</span> para pagar. Após o pagamento, os {config.coinName.toLowerCase()} podem levar alguns minutos para serem creditados.</>
+                              ) : timeLeft === 0 ? (
+                                <span className="text-red-600 font-medium">Tempo expirado. Gere um novo PIX para continuar.</span>
+                              ) : (
+                                `Você tem tempo para pagar. Após o pagamento, os ${config.coinName.toLowerCase()} podem levar alguns minutos para serem creditados.`
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Instruções de pagamento */}
+                      <div className="text-gray-500 text-sm space-y-4">
+                        <p className="font-semibold">Para realizar o pagamento siga os passos abaixo:</p>
+                        <ol className="list-decimal list-inside space-y-2 pl-2">
+                          <li>Abra o app ou o site da sua instituição financeira e seleciona o Pix.</li>
+                          <li>Utilize as informações acima para realizar o pagamento.</li>
+                          <li>Revise as informações e pronto!</li>
+                        </ol>
+                        <p>Seu pedido está sendo processado pelo nosso parceiro KAPTPAY.</p>
+                        <p>Você receberá seus {config.coinName.toLowerCase()} após recebermos a confirmação do pagamento. Isso ocorre geralmente em alguns minutos após a realização do pagamento na sua instituição financeira.</p>
+                        <p>Em caso de dúvidas entre em contato com o suporte.</p>
+                      </div>
+                    </>
                   )}
 
+                  {/* Status de Expirado */}
                   {paymentStatus === 'expired' && (
-                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="flex items-center gap-2 text-red-800">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <span className="font-medium">⏰ Tempo Expirado</span>
+                    <>
+                      <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center gap-2 text-red-800">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          <span className="font-medium">⏰ Tempo Expirado</span>
+                        </div>
+                        <p className="text-sm text-red-700 mt-1">
+                          O tempo para pagamento expirou. Gere um novo PIX para continuar.
+                        </p>
                       </div>
-                      <p className="text-sm text-red-700 mt-1">
-                        O tempo para pagamento expirou. Gere um novo PIX para continuar.
-                      </p>
-                    </div>
+
+                      {/* Botão Gerar Novo PIX */}
+                      <button
+                        onClick={() => {
+                          setShowPixInline(false)
+                          setPixData(null)
+                          setIsCopied(false)
+                          setQrCodeImage("")
+                          setTimerActive(false)
+                          setTimeLeft(15 * 60)
+                          setPaymentStatus('pending')
+                        }}
+                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors px-4 py-2 h-11 text-base font-bold w-full bg-blue-500 text-white hover:bg-blue-600"
+                      >
+                        Gerar Novo PIX
+                      </button>
+                    </>
                   )}
 
-
-                  {/* Botão Voltar */}
-                  <button
-                    onClick={() => {
-                      setShowPixInline(false)
-                      setPixData(null)
-                      setIsCopied(false)
-                      setQrCodeImage("")
-                      setTimerActive(false)
-                      setTimeLeft(15 * 60)
-                      setPaymentStatus('pending')
-                    }}
-                    className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors px-4 py-2 h-11 text-base font-bold w-full ${
-                      paymentStatus === 'paid'
-                        ? 'bg-green-500 text-white hover:bg-green-600'
-                        : timeLeft === 0 
-                          ? 'bg-blue-500 text-white hover:bg-blue-600'
-                          : 'bg-gray-500 text-white hover:bg-gray-600'
-                    }`}
-                  >
-                    {paymentStatus === 'paid' ? 'Finalizar' : timeLeft === 0 ? 'Gerar Novo PIX' : 'Voltar'}
-                  </button>
+                  {/* Botão Voltar - Apenas para pending */}
+                  {paymentStatus === 'pending' && timeLeft > 0 && (
+                    <button
+                      onClick={() => {
+                        setShowPixInline(false)
+                        setPixData(null)
+                        setIsCopied(false)
+                        setQrCodeImage("")
+                        setTimerActive(false)
+                        setTimeLeft(15 * 60)
+                        setPaymentStatus('pending')
+                      }}
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors px-4 py-2 h-11 text-base font-bold w-full bg-gray-500 text-white hover:bg-gray-600 mt-4"
+                    >
+                      Voltar
+                    </button>
+                  )}
                 </>
               ) : null}
             </div>
           )}
         </div>
 
-        {!showPixInline && (
+        {!pixData && (
           <>
             <div className="text-gray-500 text-xs/normal mb-4">
               Ao clicar em "Prosseguir para Pagamento", atesto que li e concordo com os termos de uso e com a política de privacidade.
@@ -719,6 +1060,88 @@ export default function CheckoutPage() {
           </>
         )}
       </div>
+
+      {/* Modal de Promoção */}
+      {showPromoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-lg max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="p-6 pb-0">
+              <h2 className="font-semibold text-center text-xl mb-2">Promoção Especial</h2>
+              <p className="text-center text-sm text-gray-600 pt-2">
+                Aproveite estas ofertas exclusivas para turbinar ainda mais sua conta!
+              </p>
+            </div>
+
+            {/* Items List */}
+            <div className="p-6 py-4 space-y-2 max-h-[50vh] overflow-y-auto">
+              {promoItems.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => togglePromoItem(item.id)}
+                  className="flex items-center justify-between p-2 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3 pointer-events-none">
+                    <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{item.name}</p>
+                      <p className="text-xs text-gray-500">
+                        <span className="line-through">R$ {item.oldPrice.toFixed(2).replace('.', ',')}</span>
+                        <span className="text-red-600 font-bold ml-1.5">
+                          R$ {item.price.toFixed(2).replace('.', ',')}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className={`h-4 w-4 shrink-0 rounded-sm border transition-colors ${
+                      selectedPromos.includes(item.id)
+                        ? 'bg-red-600 border-red-600'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    {selectedPromos.includes(item.id) && (
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 pt-4 flex flex-col gap-4 border-t">
+              <div className="flex justify-between items-center font-bold text-lg">
+                <span>Total:</span>
+                <span>R$ {(getFinalPrice() + getPromoTotal()).toFixed(2).replace('.', ',')}</span>
+              </div>
+              <button
+                onClick={handleFinalizeOrder}
+                className="w-full h-12 text-lg font-bold bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Finalizar Pedido
+              </button>
+              <button
+                onClick={() => {
+                  setShowPromoModal(false)
+                  setSelectedPromos([])
+                  handleFinalizeOrder()
+                }}
+                className="w-full h-10 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Não, obrigado
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-[#EFEFEF] text-gray-600">

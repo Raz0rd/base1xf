@@ -71,11 +71,49 @@
     border-radius: 4px !important;
   }
   
-  /* Carousel com padding vertical aumentado */
-  .carousel-container {
-    padding-top: 0.3rem !important;
-    padding-bottom: 0.3rem !important;
-    background-color: black !important;
+  /* Tamanhos dos ícones de moedas (Diamantes/Delta Coins) */
+  .coin-icon {
+    /* Mobile */
+    height: 0.875rem; /* 14px - aumentado */
+    width: 0.875rem;  /* 14px - aumentado */
+    margin-right: 0.25rem; /* me-1 */
+    object-fit: contain;
+  }
+  
+  /* Tablet */
+  @media (min-width: 640px) {
+    .coin-icon {
+      height: 1rem; /* 16px - aumentado */
+      width: 1rem;  /* 16px - aumentado */
+    }
+  }
+  
+  /* Desktop */
+  @media (min-width: 768px) {
+    .coin-icon {
+      height: 1.25rem; /* 20px - aumentado */
+      width: 1.25rem;  /* 20px - aumentado */
+    }
+  }
+  
+  /* Tamanho do texto dos valores de moedas */
+  .coin-value-text {
+    /* Mobile */
+    font-size: 0.75rem; /* 12px - aumentado */
+  }
+  
+  /* Tablet */
+  @media (min-width: 640px) {
+    .coin-value-text {
+      font-size: 0.875rem; /* 14px - aumentado */
+    }
+  }
+  
+  /* Desktop */
+  @media (min-width: 768px) {
+    .coin-value-text {
+      font-size: 1.25rem; /* 20px - aumentado */
+    }
   }
   
   /* Adicione aqui outras customizações que você precisa */
