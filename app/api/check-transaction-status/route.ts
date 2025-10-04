@@ -93,23 +93,41 @@ export async function POST(request: NextRequest) {
 
           const utmifyData = {
             orderId: transactionId.toString(),
-            status: "paid",
-            amount: transactionData.amount,
-            customerData: {
+            platform: "RecarGames",
+            paymentMethod: "pix",
+            status: "paid", // Status UTMify para paid
+            createdAt: new Date(transactionData.createdAt).toISOString().replace('T', ' ').substring(0, 19),
+            approvedDate: new Date(transactionData.paidAt).toISOString().replace('T', ' ').substring(0, 19),
+            refundedAt: null,
+            customer: {
               name: transactionData.customer.name,
               email: transactionData.customer.email,
               phone: transactionData.customer.phone,
-              document: transactionData.customer.document.number
+              document: transactionData.customer.document.number,
+              country: "BR",
+              ip: transactionData.ip || "unknown"
             },
-            trackingParameters: trackingParameters as any
+            products: [
+              {
+                id: `recarga-${transactionId}`,
+                name: "Recarga Free Fire",
+                planId: null,
+                planName: null,
+                quantity: 1,
+                priceInCents: transactionData.amount
+              }
+            ],
+            trackingParameters: trackingParameters as any,
+            commission: {
+              totalPriceInCents: transactionData.amount,
+              gatewayFeeInCents: transactionData.amount,
+              userCommissionInCents: transactionData.amount
+            },
+            isTest: process.env.UTMIFY_TEST_MODE === 'true'
           }
 
-          // Obter URL atual dinamicamente
-          const host = request.headers.get('host')
-          const protocol = request.headers.get('x-forwarded-proto') || 'https'
-          const baseUrl = `${protocol}://${host}`
-
-          const utmifyResponse = await fetch(`${baseUrl}/api/send-to-utmify`, {
+          // Usar a mesma API que usamos para pending
+          const utmifyResponse = await fetch('/api/utmify-track', {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
