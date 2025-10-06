@@ -33,6 +33,7 @@ export default function CheckoutPage() {
   const [timerActive, setTimerActive] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'expired'>('pending')
   const [showPromoModal, setShowPromoModal] = useState(false)
+  const [showWarningModal, setShowWarningModal] = useState(false)
   const [selectedPromos, setSelectedPromos] = useState<string[]>([])
 
   // Get URL parameters
@@ -79,6 +80,19 @@ export default function CheckoutPage() {
   }
   
   const config = gameConfig[currentGame as keyof typeof gameConfig]
+
+  // Bloquear scroll do background quando modais estão abertos
+  useEffect(() => {
+    if (showPromoModal || showWarningModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showPromoModal, showWarningModal])
 
   useEffect(() => {
     setPlayerName(playerId)
@@ -139,7 +153,6 @@ export default function CheckoutPage() {
     // 5. Adicionar timestamp e página atual
     utmData.timestamp = new Date().toISOString()
     utmData.current_page = 'checkout'
-    utmData.referrer = document.referrer || 'direct'
     
     // UTM Parameters capturados
     
@@ -172,10 +185,10 @@ export default function CheckoutPage() {
   }
 
   const promoItems = [
-    { id: 'sombra-roxa', name: 'Sombra Roxa', image: '/images/sombraRoxa.png', oldPrice: 99.99, price: 9.99 },
-    { id: 'barba-velho', name: 'Barba do Velho', image: '/images/Barba do Velho.png', oldPrice: 99.99, price: 12.99 },
-    { id: 'pacote-coelhao', name: 'Pacote Coelhão', image: '/images/Pacote Coelhão.png', oldPrice: 49.99, price: 9.99 },
-    { id: 'calca-angelical', name: 'Calça Angelical Azul', image: '/images/Calça Angelical Azul.png', oldPrice: 149.90, price: 24.80 },
+    { id: 'sombra-roxa', name: 'Sombra Roxa', image: '/images/sombraRoxa.png', oldPrice: 99.75, price: 9.99 },
+    { id: 'barba-velho', name: 'Barba do Velho', image: '/images/Barba do Velho.png', oldPrice: 89.99, price: 10.99 },
+    { id: 'pacote-coelhao', name: 'Pacote Coelhão', image: '/images/Pacote Coelhão.png', oldPrice: 49.29, price: 9.99 },
+    { id: 'calca-angelical', name: 'Calça Angelical Azul', image: '/images/Calça Angelical Azul.png', oldPrice: 129.90, price: 15.80 },
     { id: 'dunk-master', name: 'Dunk Master', image: '/images/Dunk Master.png', oldPrice: 75.90, price: 9.99 }
   ]
 
@@ -212,6 +225,7 @@ export default function CheckoutPage() {
     // Mostrar modal de promoção apenas para Free Fire
     if (config.showOrderBump) {
       setShowPromoModal(true)
+      setShowWarningModal(true) // Mostrar aviso na frente
     } else {
       // Para Delta Force e Haikyu, ir direto para finalizar
       handleFinalizeOrder()
@@ -532,7 +546,7 @@ export default function CheckoutPage() {
           device: utmParameters.device || null,
           network: utmParameters.network || null,
           gad_source: utmParameters.gad_source || null,
-          gbraid: utmParameters.gbraid || null
+          gbraid: utmParameters.gbraid || null,
         },
         commission: commission,
         isTest: process.env.NEXT_PUBLIC_UTMIFY_TEST_MODE === 'true'
@@ -540,7 +554,9 @@ export default function CheckoutPage() {
 
       const response = await fetch('/api/utmify-track', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(utmifyData)
       })
       
@@ -617,7 +633,9 @@ export default function CheckoutPage() {
 
       const response = await fetch('/api/utmify-track', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(utmifyData)
       })
       
@@ -1064,7 +1082,7 @@ export default function CheckoutPage() {
       {/* Modal de Promoção */}
       {showPromoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-lg max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col">
             {/* Header */}
             <div className="p-6 pb-0">
               <h2 className="font-semibold text-center text-xl mb-2">Promoção Especial</h2>
@@ -1074,7 +1092,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Items List */}
-            <div className="p-6 py-4 space-y-2 max-h-[50vh] overflow-y-auto">
+            <div className="p-6 py-4 space-y-2 overflow-y-auto flex-1">
               {promoItems.map((item) => (
                 <div
                   key={item.id}
@@ -1117,7 +1135,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Footer */}
-            <div className="p-6 pt-4 flex flex-col gap-4 border-t">
+            <div className="p-6 pt-4 flex flex-col gap-4 border-t flex-shrink-0 bg-white">
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total:</span>
                 <span>R$ {(getFinalPrice() + getPromoTotal()).toFixed(2).replace('.', ',')}</span>
@@ -1143,6 +1161,44 @@ export default function CheckoutPage() {
         </div>
       )}
 
+      {/* Modal de Aviso (aparece na frente do modal de promoção) */}
+      {showWarningModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            {/* Header */}
+            <div className="p-6 pb-4 border-b">
+              <h3 className="text-lg font-bold text-center text-gray-800">⚠️ Atenção Importante</h3>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                <span className="font-bold">Atenção:</span> devido a
+                manutenções temporárias em alguns sistemas de pagamento no Brasil, 
+                podem ocorrer <span className="font-semibold">instabilidades ao tentar pagar valores acima de R$80</span>.
+                <br /><br />
+                Caso encontre qualquer erro ou dificuldade ao efetuar o pagamento, 
+                recomendamos <span className="font-semibold">selecionar um produto de valor inicial menor</span>.
+                Dessa forma, o pagamento será processado normalmente.
+                <br /><br />
+                Se desejar, você pode realizar dois pedidos separados — 
+                <span className="font-semibold">nossa equipe fará a entrega de todos os itens juntos diretamente via ID autenticado, sem custo adicional</span>.
+              </p>
+            </div>
+            
+            {/* Footer */}
+            <div className="p-6 pt-0">
+              <button
+                onClick={() => setShowWarningModal(false)}
+                className="w-full h-12 text-base font-bold bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer className="bg-[#EFEFEF] text-gray-600">
         <div className="container mx-auto max-w-5xl px-4">
@@ -1154,7 +1210,7 @@ export default function CheckoutPage() {
                 <div className="h-3 w-px bg-gray-300"></div>
                 <a href="https://www.recargajogo.eu/legal/tos?utm_source=organicjLj68e076949be15d3367c027e6&utm_campaign=&utm_medium=&utm_content=&utm_term=" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-70">Termos e Condições</a>
                 <div className="h-3 w-px bg-gray-300"></div>
-                <a href="https://www.recargajogo.eu/legal/pp?utm_source=organicjLj68e076949be15d3367c027e6&utm_campaign=&utm_medium=&utm_content=&utm_term=" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-70">Política de Privacidade</a>
+                <a href="/politica-privacidade" target="_blank" className="transition-opacity hover:opacity-70">Política de Privacidade</a>
               </div>
             </div>
           </div>

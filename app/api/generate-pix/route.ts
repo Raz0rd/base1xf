@@ -35,135 +35,244 @@ export async function OPTIONS(request: NextRequest) {
   })
 }
 
+// Função para gerar PIX via BlackCat
+async function generatePixBlackCat(body: any, baseUrl: string) {
+  const authToken = process.env.BLACKCAT_API_AUTH
+  console.log("\n🐈 [BlackCat] Verificando autenticação:", authToken ? "✓ Token presente" : "✗ Token ausente")
+  
+  if (!authToken) {
+    console.error("❌ [BlackCat] BLACKCAT_API_AUTH não configurado")
+    throw new Error("Configuração de API não encontrada")
+  }
+
+  console.log("📤 [BlackCat] REQUEST BODY:", JSON.stringify(body, null, 2))
+  
+  // Log dos parâmetros UTM recebidos para análise
+  console.log("🔗 [UTM PARAMS] Parâmetros recebidos para PIX:")
+  console.log("📊 [UTM PARAMS] UTM Source:", body.utmParams?.utm_source || 'N/A')
+  console.log("📊 [UTM PARAMS] UTM Medium:", body.utmParams?.utm_medium || 'N/A')
+  console.log("📊 [UTM PARAMS] UTM Campaign:", body.utmParams?.utm_campaign || 'N/A')
+  console.log("📊 [UTM PARAMS] UTM Term:", body.utmParams?.utm_term || 'N/A')
+  console.log("📊 [UTM PARAMS] UTM Content:", body.utmParams?.utm_content || 'N/A')
+  console.log("📊 [UTM PARAMS] GCLID:", body.utmParams?.gclid || 'N/A')
+  console.log("📊 [UTM PARAMS] FBCLID:", body.utmParams?.fbclid || 'N/A')
+  console.log("📊 [UTM PARAMS] Todos os UTMs:", JSON.stringify(body.utmParams || {}, null, 2))
+  
+  console.log("🌐 [BlackCat] URL dinâmica detectada:", baseUrl)
+
+  const blackcatPayload = {
+    amount: body.amount,
+    currency: "BRL",
+    paymentMethod: "pix",
+    postbackUrl: `${baseUrl}/api/webhook`,
+    metadata: JSON.stringify({
+      utmParams: body.utmParams || {}
+    }),
+    items: [
+      {
+        title: "Recarga",
+        unitPrice: body.amount,
+        tangible: false,
+        quantity: 1,
+      },
+    ],
+    customer: body.customer,
+  }
+  
+  console.log("📦 [BlackCat] PAYLOAD ENVIADO:", JSON.stringify(blackcatPayload, null, 2))
+  console.log("🎯 [BlackCat] URL:", "https://api.blackcatpagamentos.com/v1/transactions")
+  console.log("🔑 [BlackCat] Auth Token:", authToken.substring(0, 10) + "...")
+  
+  const response = await fetch("https://api.blackcatpagamentos.com/v1/transactions", {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      authorization: authToken,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(blackcatPayload),
+  })
+
+  console.log("📡 [BlackCat] RESPONSE STATUS:", response.status)
+  console.log("📊 [BlackCat] RESPONSE HEADERS:", Object.fromEntries(response.headers.entries()))
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error("❌ [BlackCat] ERROR RESPONSE:", {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorText,
+      headers: Object.fromEntries(response.headers.entries())
+    })
+    
+    throw new Error(`Erro na API de pagamento: ${response.status}`)
+  }
+
+  const data = await response.json()
+  console.log("✅ [BlackCat] SUCCESS RESPONSE:", JSON.stringify(data, null, 2))
+
+  // Extrair informações importantes da resposta
+  const transactionId = data.id || data.transaction_id || data.transactionId || data.payment_id
+  const pixCode = data.pix?.qrcode || data.pixCode || data.pix_code || data.code || data.qr_code_text || data.payment_code
+  const qrCodeImage = data.qrCode || data.qr_code || data.qr_code_url || data.pix?.qr_code_url
+  
+  console.log("🔍 [BlackCat] DADOS EXTRAÍDOS:", {
+    transactionId,
+    pixCode: pixCode ? `${pixCode.substring(0, 50)}...` : null,
+    qrCodeImage: qrCodeImage ? "Presente" : "Ausente"
+  })
+
+  // Retornar dados normalizados
+  try {
+    console.log('✅ [PIX] QR Code gerado com sucesso')
+  } catch (error) {
+    console.error('[PIX] Erro ao registrar conversão QR:', error)
+  }
+  
+  const normalizedResponse = {
+    ...data,
+    transactionId,
+    pixCode,
+    qrCode: qrCodeImage,
+    success: true
+  }
+  
+  console.log("🎉 [BlackCat] RESPOSTA NORMALIZADA:", JSON.stringify(normalizedResponse, null, 2))
+  return normalizedResponse
+}
+
+// Função para gerar PIX via GhostPay
+async function generatePixGhostPay(body: any, baseUrl: string) {
+  const secretKey = process.env.GHOSTPAY_API_KEY
+  console.log("\n👻 [GhostPay] Verificando autenticação:", secretKey ? "✓ Token presente" : "✗ Token ausente")
+  
+  if (!secretKey) {
+    console.error("❌ [GhostPay] GHOSTPAY_API_KEY não configurado")
+    throw new Error("Configuração de API não encontrada")
+  }
+
+  console.log("📤 [GhostPay] REQUEST BODY:", JSON.stringify(body, null, 2))
+  
+  // Log dos parâmetros UTM recebidos
+  console.log("🔗 [UTM PARAMS] Parâmetros recebidos para PIX:")
+  console.log("📊 [UTM PARAMS] UTM Source:", body.utmParams?.utm_source || 'N/A')
+  console.log("📊 [UTM PARAMS] Todos os UTMs:", JSON.stringify(body.utmParams || {}, null, 2))
+  
+  console.log("🌐 [GhostPay] URL dinâmica detectada:", baseUrl)
+
+  const ghostPayload = {
+    amount: body.amount,
+    paymentMethod: 'pix',
+    customer: {
+      name: body.customer.name,
+      email: body.customer.email,
+      phone: body.customer.phone,
+      document: {
+        number: body.customer.document,
+        type: 'cpf'
+      }
+    },
+    items: [
+      {
+        title: 'Diamantes Free Fire',
+        unitPrice: body.amount,
+        quantity: 1,
+        tangible: false
+      }
+    ]
+  }
+  
+  // Criar auth Basic com base64
+  const authString = Buffer.from(`${secretKey}:x`).toString('base64')
+  
+  console.log("📦 [GhostPay] PAYLOAD ENVIADO:", JSON.stringify(ghostPayload, null, 2))
+  console.log("🎯 [GhostPay] URL:", "https://api.ghostspaysv2.com/functions/v1/transactions")
+  console.log("🔑 [GhostPay] Auth Token:", authString.substring(0, 10) + "...")
+  
+  const response = await fetch("https://api.ghostspaysv2.com/functions/v1/transactions", {
+    method: "POST",
+    headers: {
+      'Authorization': `Basic ${authString}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(ghostPayload),
+  })
+
+  console.log("📡 [GhostPay] RESPONSE STATUS:", response.status)
+  console.log("📊 [GhostPay] RESPONSE HEADERS:", Object.fromEntries(response.headers.entries()))
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error("❌ [GhostPay] ERROR RESPONSE:", {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorText,
+      headers: Object.fromEntries(response.headers.entries())
+    })
+    
+    throw new Error(`Erro na API de pagamento: ${response.status}`)
+  }
+
+  const data = await response.json()
+  console.log("✅ [GhostPay] SUCCESS RESPONSE:", JSON.stringify(data, null, 2))
+
+  // Extrair informações importantes da resposta GhostPay
+  const transactionId = data.id || data.transaction_id || data.transactionId
+  const pixCode = data.pix?.qrcode || data.pixCode || data.pix_code || data.code
+  const qrCodeImage = data.qrCode || data.qr_code || data.qr_code_url || data.pix?.qr_code_url
+  
+  console.log("🔍 [GhostPay] DADOS EXTRAÍDOS:", {
+    transactionId,
+    pixCode: pixCode ? `${pixCode.substring(0, 50)}...` : null,
+    qrCodeImage: qrCodeImage ? "Presente" : "Ausente"
+  })
+
+  const normalizedResponse = {
+    ...data,
+    transactionId,
+    pixCode,
+    qrCode: qrCodeImage,
+    success: true
+  }
+  
+  console.log("🎉 [GhostPay] RESPOSTA NORMALIZADA:", JSON.stringify(normalizedResponse, null, 2))
+  return normalizedResponse
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const authToken = process.env.BLACKCAT_API_AUTH
-    console.log("\n🐈 [BlackCat] Verificando autenticação:", authToken ? "✓ Token presente" : "✗ Token ausente")
+    // Escolher gateway baseado na variável de ambiente
+    const gateway = process.env.PAYMENT_GATEWAY || 'blackcat' // 'blackcat' ou 'ghostpay'
+    console.log("\n💳 [GATEWAY] Gateway selecionado:", gateway.toUpperCase())
     
-    if (!authToken) {
-      console.error("❌ [BlackCat] BLACKCAT_API_AUTH não configurado")
-      return NextResponse.json({ error: "Configuração de API não encontrada" }, { status: 500 })
-    }
-
     const body = await request.json()
-    console.log("📤 [BlackCat] REQUEST BODY:", JSON.stringify(body, null, 2))
     
-    // Log dos parâmetros UTM recebidos para análise
-    console.log("🔗 [UTM PARAMS] Parâmetros recebidos para PIX:")
-    console.log("📊 [UTM PARAMS] UTM Source:", body.utmParams?.utm_source || 'N/A')
-    console.log("📊 [UTM PARAMS] UTM Medium:", body.utmParams?.utm_medium || 'N/A')
-    console.log("📊 [UTM PARAMS] UTM Campaign:", body.utmParams?.utm_campaign || 'N/A')
-    console.log("📊 [UTM PARAMS] UTM Term:", body.utmParams?.utm_term || 'N/A')
-    console.log("📊 [UTM PARAMS] UTM Content:", body.utmParams?.utm_content || 'N/A')
-    console.log("📊 [UTM PARAMS] GCLID:", body.utmParams?.gclid || 'N/A')
-    console.log("📊 [UTM PARAMS] FBCLID:", body.utmParams?.fbclid || 'N/A')
-    console.log("📊 [UTM PARAMS] Todos os UTMs:", JSON.stringify(body.utmParams || {}, null, 2))
-
     // Obter URL atual dinamicamente
     const host = request.headers.get('host')
     const protocol = request.headers.get('x-forwarded-proto') || 'https'
     const baseUrl = `${protocol}://${host}`
     
-    console.log("🌐 [BlackCat] URL dinâmica detectada:", baseUrl)
-
-    const blackcatPayload = {
-      amount: body.amount,
-      currency: "BRL",
-      paymentMethod: "pix",
-      postbackUrl: `${baseUrl}/api/webhook`,
-      metadata: JSON.stringify({
-        utmParams: body.utmParams || {}
-      }),
-      items: [
-        {
-          title: "Recarga",
-          unitPrice: body.amount,
-          tangible: false,
-          quantity: 1,
-        },
-      ],
-      customer: body.customer,
+    let result
+    
+    if (gateway === 'ghostpay') {
+      result = await generatePixGhostPay(body, baseUrl)
+    } else {
+      result = await generatePixBlackCat(body, baseUrl)
     }
-    
-    console.log("📦 [BlackCat] PAYLOAD ENVIADO:", JSON.stringify(blackcatPayload, null, 2))
-    console.log("🎯 [BlackCat] URL:", "https://api.blackcatpagamentos.com/v1/transactions")
-    console.log("🔑 [BlackCat] Auth Token:", authToken.substring(0, 10) + "...")
-    
-    const response = await fetch("https://api.blackcatpagamentos.com/v1/transactions", {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: authToken,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(blackcatPayload),
-    })
-
-    console.log("📡 [BlackCat] RESPONSE STATUS:", response.status)
-    console.log("📊 [BlackCat] RESPONSE HEADERS:", Object.fromEntries(response.headers.entries()))
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("❌ [BlackCat] ERROR RESPONSE:", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
-        headers: Object.fromEntries(response.headers.entries())
-      })
-      
-      // Retornar erro mais detalhado
-      return NextResponse.json({ 
-        error: `Erro na API de pagamento: ${response.status}`,
-        details: errorText,
-        status: response.status
-      }, { status: response.status })
-    }
-
-    const data = await response.json()
-    console.log("✅ [BlackCat] SUCCESS RESPONSE:", JSON.stringify(data, null, 2))
-
-    // Extrair informações importantes da resposta
-    const transactionId = data.id || data.transaction_id || data.transactionId || data.payment_id
-    const pixCode = data.pix?.qrcode || data.pixCode || data.pix_code || data.code || data.qr_code_text || data.payment_code
-    const qrCodeImage = data.qrCode || data.qr_code || data.qr_code_url || data.pix?.qr_code_url
-    
-    console.log("🔍 [BlackCat] DADOS EXTRAÍDOS:", {
-      transactionId,
-      pixCode: pixCode ? `${pixCode.substring(0, 50)}...` : null,
-      qrCodeImage: qrCodeImage ? "Presente" : "Ausente"
-    })
-
-    // Retornar dados normalizados
-    // Registrar conversão de QR gerado
-    try {
-      console.log('✅ [PIX] QR Code gerado com sucesso')
-    } catch (error) {
-      console.error('[PIX] Erro ao registrar conversão QR:', error)
-    }
-    
-    const normalizedResponse = {
-      ...data,
-      transactionId,
-      pixCode,
-      qrCode: qrCodeImage,
-      success: true
-    }
-    
-    console.log("🎉 [BlackCat] RESPOSTA NORMALIZADA:", JSON.stringify(normalizedResponse, null, 2))
     
     // DEBUG: Verificar se dados foram salvos no storage
     console.log("🔍 [DEBUG] Verificando se dados foram salvos no storage...")
-    const savedOrder = orderStorageService.getOrder(transactionId)
+    const savedOrder = orderStorageService.getOrder(result.transactionId)
     if (savedOrder) {
       console.log("✅ [DEBUG] Dados salvos no storage:", JSON.stringify(savedOrder, null, 2))
     } else {
       console.error("❌ [DEBUG] ERRO: Dados NÃO foram salvos no storage!")
     }
     
-    return NextResponse.json(normalizedResponse)
+    return NextResponse.json(result)
   } catch (error) {
-    console.error("💥 [BlackCat] EXCEPTION:", error)
-    console.error("🔍 [BlackCat] Error details:", error instanceof Error ? error.message : 'Unknown error')
+    console.error("💥 [GATEWAY] EXCEPTION:", error)
+    console.error("🔍 [GATEWAY] Error details:", error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: "Erro ao gerar pagamento PIX" }, { status: 500 })
   }
 }

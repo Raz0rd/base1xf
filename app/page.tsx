@@ -28,12 +28,28 @@ export default function HomePage() {
   const [showTutorialModal, setShowTutorialModal] = useState(false)
   const [selectedRechargeValue, setSelectedRechargeValue] = useState<string | null>(null)
   const [selectedSpecialOffer, setSelectedSpecialOffer] = useState<string | null>(null)
+  const [showCookieBanner, setShowCookieBanner] = useState(false)
+  const [showFreeItemModal, setShowFreeItemModal] = useState(false)
+  
+  // Debug: Log quando showCookieBanner muda
+  useEffect(() => {
+    console.log('[COOKIE] Estado showCookieBanner:', showCookieBanner)
+  }, [showCookieBanner])
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("PIX")
   const [showExitMessage, setShowExitMessage] = useState(false)
   const [exitMessage, setExitMessage] = useState("")
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
   const [pendingDisqualifyAnswer, setPendingDisqualifyAnswer] = useState<string | null>(null)
   const [selectedGame, setSelectedGame] = useState<'freefire' | 'deltaforce' | 'haikyu'>('freefire')
+  
+  // Função para navegar preservando UTM params
+  const navigateToGame = (appId: string) => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      searchParams.set('app', appId)
+      router.push(`/?${searchParams.toString()}`)
+    }
+  }
   
   // Configurações dinâmicas por jogo
   const gameConfig = {
@@ -93,6 +109,29 @@ export default function HomePage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Verificar consentimento de cookies
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    const cookieConsent = localStorage.getItem('cookieConsent')
+    console.log('[COOKIE] Consentimento atual:', cookieConsent)
+    
+    if (!cookieConsent) {
+      console.log('[COOKIE] Mostrando banner')
+      setShowCookieBanner(true)
+    } else {
+      console.log('[COOKIE] Banner já foi aceito, não mostrando')
+    }
+  }, [])
+
+  // Função para aceitar cookies
+  const handleAcceptCookies = () => {
+    console.log('[COOKIE] Usuário aceitou cookies')
+    localStorage.setItem('cookieConsent', 'true')
+    setShowCookieBanner(false)
+    console.log('[COOKIE] Banner fechado')
+  }
   
   // Array de banners para carousel (4 banners diferentes)
   const banners = [
@@ -111,12 +150,27 @@ export default function HomePage() {
   ]
 
 
-  // Log da página e parâmetros UTM
+  // Capturar e salvar parâmetros UTM no sessionStorage
   useEffect(() => {
-    const utmParams = getUtmObject()
-    // adminLogger.logPageView(window.location.pathname + window.location.search)
+    if (typeof window === 'undefined') return
     
-    console.log('[DEBUG] Página carregada:', {
+    const urlParams = new URLSearchParams(window.location.search)
+    const paramsToCapture = [
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+      'gclid', 'fbclid', 'src', 'sck', 'xcod', 'keyword', 'device', 'network', 
+      'gad_source', 'gbraid', 'wbraid', 'msclkid'
+    ]
+    
+    // Salvar parâmetros da URL no sessionStorage
+    paramsToCapture.forEach(param => {
+      const value = urlParams.get(param)
+      if (value) {
+        sessionStorage.setItem(`utm_${param}`, value)
+      }
+    })
+    
+    const utmParams = getUtmObject()
+    console.log('[DEBUG] Página carregada e UTM params salvos no sessionStorage:', {
       pathname: window.location.pathname,
       utmParams
     })
@@ -809,7 +863,7 @@ export default function HomePage() {
                 setIsLoggedIn(false)
                 setPlayerId("")
                 setUserData(null)
-                router.push('/?app=100067')
+                navigateToGame('100067')
               }}
             >
               <div className="mx-auto max-w-[60px] sm:max-w-[70px] md:max-w-[105px]">
@@ -847,7 +901,7 @@ export default function HomePage() {
                 setIsLoggedIn(false)
                 setPlayerId("")
                 setUserData(null)
-                router.push('/?app=100157')
+                navigateToGame('100157')
               }}
             >
               <div className="mx-auto max-w-[60px] sm:max-w-[70px] md:max-w-[105px]">
@@ -887,7 +941,7 @@ export default function HomePage() {
                 setIsLoggedIn(false)
                 setPlayerId("")
                 setUserData(null)
-                router.push('/?app=100153')
+                navigateToGame('100153')
               }}
             >
               <div className="mx-auto max-w-[60px] sm:max-w-[70px] md:max-w-[105px]">
@@ -967,25 +1021,31 @@ export default function HomePage() {
                   
                   <div className="mb-0.5 text-base/none font-bold text-gray-800">Item Grátis</div>
                   <div className="mb-3 text-xs text-gray-600">Resgate aqui seus itens exclusivos grátis</div>
-                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-destructive text-destructive-foreground hover:bg-destructive/90 py-2 h-7 px-3 text-xs font-medium">
+                  <button 
+                    onClick={() => setShowFreeItemModal(true)}
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-destructive text-destructive-foreground hover:bg-destructive/90 py-2 h-7 px-3 text-xs font-medium"
+                  >
                     Resgatar
                   </button>
                   
                 </div>
-                <button className="flex flex-col items-center justify-center">
+                <button 
+                  onClick={() => setShowFreeItemModal(true)}
+                  className="flex flex-col items-center justify-center"
+                >
                   <div className="mb-2 flex h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
                     <img 
-                      alt="Cubo Mágico" 
+                      alt="Pacote de Armas Gabarola" 
                       loading="lazy" 
                       width="60" 
                       height="60" 
                       decoding="async" 
                       className="pointer-events-none h-full w-full object-cover" 
-                      src="/images/cubomagic.png"
+                      src="/images/itemgratisNovo.png"
                     />
                   </div>
                   <div className="flex items-center text-xs">
-                    <div className="max-w-20 truncate font-medium text-gray-700">Cubo Mágico</div>
+                    <div className="max-w-20 truncate font-medium text-gray-700">Pacote de Armas Gabarola</div>
                     <svg width="1em" height="1em" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <g clipPath="url(#recharge_clip0_489_1601)">
                         <path d="M4.8999 5.39848C4.89981 4.44579 5.67209 3.67344 6.62478 3.67344H7.37471C8.33038 3.67344 9.09977 4.45392 9.09971 5.40371C9.09967 6.05546 8.73195 6.65677 8.14619 6.94967L7.57416 7.23571C7.49793 7.27382 7.44978 7.35173 7.44978 7.43695V7.49844C7.44978 7.78839 7.21473 8.02344 6.92478 8.02344C6.63483 8.02344 6.39978 7.78839 6.39978 7.49844V7.43695C6.39978 6.95403 6.67262 6.51255 7.10456 6.29657L7.6766 6.01053C7.90385 5.8969 8.0497 5.66087 8.04971 5.40365C8.04973 5.0279 7.74459 4.72344 7.37471 4.72344H6.62478C6.25203 4.72344 5.94987 5.02563 5.9499 5.39838C5.94993 5.68833 5.7149 5.9234 5.42495 5.92343C5.135 5.92346 4.89993 5.68843 4.8999 5.39848Z" fill="currentColor"></path>
@@ -2012,7 +2072,7 @@ export default function HomePage() {
                   <div className="h-3 w-px bg-gray-300"></div>
                   <a href="https://www.recargajogo.eu/legal/tos?utm_source=organicjLj68e076949be15d3367c027e6&utm_campaign=&utm_medium=&utm_content=&utm_term=" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-70">Termos e Condições</a>
                   <div className="h-3 w-px bg-gray-300"></div>
-                  <a href="https://www.recargajogo.eu/legal/pp?utm_source=organicjLj68e076949be15d3367c027e6&utm_campaign=&utm_medium=&utm_content=&utm_term=" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-70">Política de Privacidade</a>
+                  <a href="/politica-privacidade" target="_blank" className="transition-opacity hover:opacity-70">Política de Privacidade</a>
                 </div>
               </div>
             </div>
@@ -2101,6 +2161,60 @@ export default function HomePage() {
                   className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-colors"
                 >
                   OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Item Grátis */}
+        {showFreeItemModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+            <div className="flex w-full max-w-sm flex-col items-center justify-center rounded-lg bg-white p-6 text-center">
+              <div className="mb-5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-[14px] border border-gray-300 bg-white">
+                <img 
+                  className="pointer-events-none h-full w-full object-cover" 
+                  src="/images/itemgratisNovo.png"
+                  alt="Pacote de Armas Gabarola"
+                />
+              </div>
+              <div className="mb-3 text-base font-bold text-gray-800">Pacote de Armas Gabarola</div>
+              <div className="px-4 text-sm text-gray-600 mb-5">Pacote de Armas Gabarola</div>
+              <button 
+                onClick={() => setShowFreeItemModal(false)}
+                className="w-full inline-flex items-center justify-center gap-1.5 rounded-md border py-1 text-center leading-none transition-colors border-red-600 bg-red-600 text-white hover:bg-red-700 hover:border-red-700 px-5 text-sm font-bold h-10"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Banner de Consentimento de Cookies */}
+        {showCookieBanner && (
+          <div className="fixed inset-x-0 bottom-8 z-10 flex justify-center px-3">
+            <div className="w-full max-w-5xl px-4 md:px-8 lg:px-10">
+              <div className="flex flex-col items-start rounded-md bg-black/75 px-3.5 py-4 text-white md:flex-row md:items-center">
+                <div className="grow">
+                  <div className="mb-1 text-base">Consentimento de Cookie</div>
+                  <div className="text-sm">
+                    <span className="text-white/70">
+                      A gente usa cookies para melhorar a sua experiência no site. Ao continuar navegando, você concorda com a nossa
+                    </span>{' '}
+                    <a 
+                      href="/politica-privacidade" 
+                      target="_blank"
+                      className="underline hover:text-white/80"
+                    >
+                      Política de Privacidade.
+                    </a>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleAcceptCookies}
+                  className="mt-3 shrink-0 md:ms-3 md:mt-0 inline-flex items-center justify-center gap-1.5 rounded-md border py-1 text-center leading-none transition-colors border-[rgb(216,26,13)] bg-[rgb(216,26,13)] text-white hover:bg-[rgb(205,18,20)] hover:border-[rgb(205,18,20)] px-5 text-base font-bold h-11"
+                >
+                  Continuar e Fechar
                 </button>
               </div>
             </div>

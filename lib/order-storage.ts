@@ -25,7 +25,7 @@ const orderStorage = new Map<string, OrderData>()
 export const orderStorageService = {
   // Salvar pedido
   saveOrder: (orderData: OrderData) => {
-    console.log("[v0] Order Storage - Saving order:", orderData.orderId)
+    //console.log("[v0] Order Storage - Saving order:", orderData.orderId)
     orderStorage.set(orderData.orderId, orderData)
     
     // Se tiver transactionId, também indexar por ele
@@ -46,10 +46,10 @@ export const orderStorageService = {
   getOrder: (id: string): OrderData | null => {
     const order = orderStorage.get(id)
     if (order) {
-      console.log("[v0] Order Storage - Order found:", order.orderId)
+      //console.log("[v0] Order Storage - Order found:", order.orderId)
       return order
     }
-    console.log("[v0] Order Storage - Order not found:", id)
+    //console.log("[v0] Order Storage - Order not found:", id)
     return null
   },
 
@@ -65,7 +65,7 @@ export const orderStorageService = {
         orderStorage.set(order.transactionId, order)
       }
       
-      console.log("[v0] Order Storage - Status updated:", order.orderId, status)
+      //console.log("[v0] Order Storage - Status updated:", order.orderId, status)
       return true
     }
     return false
@@ -84,7 +84,7 @@ export const orderStorageService = {
   // Limpar armazenamento
   clear: () => {
     orderStorage.clear()
-    console.log("[v0] Order Storage - Cleared all orders")
+    //console.log("[v0] Order Storage - Cleared all orders")
   }
 }
 

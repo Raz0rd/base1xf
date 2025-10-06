@@ -7,13 +7,15 @@ export async function POST(request: NextRequest) {
     // Verificar se UTMify está habilitado
     const utmifyEnabled = process.env.UTMIFY_ENABLED === 'true'
     const utmifyToken = process.env.UTMIFY_API_TOKEN
+    const whitepageUrl = process.env.UTMIFY_WHITEPAGE_URL
 
-    if (!utmifyEnabled || !utmifyToken) {
+    if (!utmifyEnabled || !utmifyToken || !whitepageUrl) {
       console.log('UTMify não configurado ou desabilitado')
       return NextResponse.json({ success: false, message: 'UTMify não configurado' })
     }
 
     console.log('[UTMify] Enviando lead para UTMify:', JSON.stringify(utmifyData, null, 2))
+    console.log('[UTMify] Referer (Whitepage):', whitepageUrl)
 
     // Enviar para UTMify usando o mesmo endpoint do webhook
     const utmifyResponse = await fetch('https://api.utmify.com.br/api-credentials/orders', {
@@ -21,6 +23,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-token': utmifyToken,
+        'Referer': whitepageUrl
       },
       body: JSON.stringify(utmifyData)
     })

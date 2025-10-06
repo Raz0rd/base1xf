@@ -1,6 +1,69 @@
 import { NextRequest, NextResponse } from "next/server"
 import { orderStorageService } from "@/lib/order-storage"
 
+// Função para consultar status no BlackCat
+async function checkStatusBlackCat(transactionId: string) {
+  const blackcatUrl = `https://api.blackcatpagamentos.com/v1/transactions/${transactionId}`
+  const blackcatAuth = process.env.BLACKCAT_API_AUTH
+
+  if (!blackcatAuth) {
+    throw new Error("BLACKCAT_API_AUTH não configurado")
+  }
+
+  console.log(`[BlackCat] Consultando: ${blackcatUrl}`)
+
+  const response = await fetch(blackcatUrl, {
+    method: "GET",
+    headers: {
+      "accept": "application/json",
+      "authorization": blackcatAuth
+    }
+  })
+
+  if (!response.ok) {
+    console.error(`[BlackCat] Erro na API: ${response.status}`)
+    throw new Error(`Erro na API BlackCat: ${response.status}`)
+  }
+
+  const transactionData = await response.json()
+  console.log(`[BlackCat] Status atual: ${transactionData.status}`)
+  
+  return transactionData
+}
+
+// Função para consultar status no GhostPay
+async function checkStatusGhostPay(transactionId: string) {
+  const ghostpayUrl = `https://api.ghostspaysv2.com/functions/v1/transactions/${transactionId}`
+  const secretKey = process.env.GHOSTPAY_API_KEY
+
+  if (!secretKey) {
+    throw new Error("GHOSTPAY_API_KEY não configurado")
+  }
+
+  console.log(`[GhostPay] Consultando: ${ghostpayUrl}`)
+
+  // Criar auth Basic com base64
+  const authString = Buffer.from(`${secretKey}:x`).toString('base64')
+
+  const response = await fetch(ghostpayUrl, {
+    method: "GET",
+    headers: {
+      "Authorization": `Basic ${authString}`,
+      "Content-Type": "application/json"
+    }
+  })
+
+  if (!response.ok) {
+    console.error(`[GhostPay] Erro na API: ${response.status}`)
+    throw new Error(`Erro na API GhostPay: ${response.status}`)
+  }
+
+  const transactionData = await response.json()
+  console.log(`[GhostPay] Status atual: ${transactionData.status}`)
+  
+  return transactionData
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { transactionId } = await request.json()
@@ -12,12 +75,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log(`[FALLBACK] Verificando status da transação: ${transactionId}`)
+    // Escolher gateway baseado na variável de ambiente
+    const gateway = process.env.PAYMENT_GATEWAY || 'blackcat'
+    console.log(`[CHECK-STATUS] Gateway selecionado: ${gateway.toUpperCase()}`)
+    console.log(`[CHECK-STATUS] Verificando status da transação: ${transactionId}`)
 
     // Verificar se já processamos esta transação como paid
     const storedOrder = orderStorageService.getOrder(transactionId.toString())
     if (storedOrder && storedOrder.status === 'paid') {
-      console.log(`[FALLBACK] Transação ${transactionId} já processada como paid`)
+      console.log(`[CHECK-STATUS] Transação ${transactionId} já processada como paid`)
       return NextResponse.json({
         success: true,
         status: 'paid',
@@ -26,35 +92,23 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Consultar API do BlackCat
-    const blackcatUrl = `https://api.blackcatpagamentos.com/v1/transactions/${transactionId}`
-    const blackcatAuth = process.env.BLACKCAT_API_AUTH
-
-    if (!blackcatAuth) {
-      throw new Error("BLACKCAT_API_AUTH não configurado")
-    }
-
-    console.log(`[FALLBACK] Consultando BlackCat: ${blackcatUrl}`)
-
-    const response = await fetch(blackcatUrl, {
-      method: "GET",
-      headers: {
-        "accept": "application/json",
-        "authorization": blackcatAuth
+    // Consultar API do gateway configurado
+    let transactionData
+    
+    try {
+      if (gateway === 'ghostpay') {
+        transactionData = await checkStatusGhostPay(transactionId)
+      } else {
+        transactionData = await checkStatusBlackCat(transactionId)
       }
-    })
-
-    if (!response.ok) {
-      console.error(`[FALLBACK] Erro na API BlackCat: ${response.status}`)
+    } catch (error) {
+      console.error(`[CHECK-STATUS] Erro ao consultar gateway:`, error)
       return NextResponse.json({
         success: false,
-        error: `Erro na API BlackCat: ${response.status}`,
-        status: response.status
+        error: error instanceof Error ? error.message : 'Erro ao consultar gateway',
+        status: 500
       }, { status: 500 })
     }
-
-    const transactionData = await response.json()
-    console.log(`[FALLBACK] Status atual: ${transactionData.status}`)
 
     const currentStatus = transactionData.status
     const isNowPaid = currentStatus === 'paid'
@@ -62,15 +116,15 @@ export async function POST(request: NextRequest) {
 
     // Se status é paid, sempre processar e enviar para UTMify
     if (isNowPaid) {
-      console.log(`[FALLBACK] Status é PAID! Processando e enviando para UTMify...`)
+      console.log(`[CHECK-STATUS] Status é PAID! Processando e enviando para UTMify...`)
 
       // Recuperar UTMs do storage ou usar fallback
       let trackingParameters = {}
       if (storedOrder && storedOrder.trackingParameters) {
         trackingParameters = storedOrder.trackingParameters
-        console.log(`[FALLBACK] UTMs recuperados do storage:`, trackingParameters)
+        console.log(`[CHECK-STATUS] UTMs recuperados do storage:`, trackingParameters)
       } else {
-        console.warn(`[FALLBACK] Nenhum UTM encontrado no storage para ${transactionId}`)
+        console.warn(`[CHECK-STATUS] Nenhum UTM encontrado no storage para ${transactionId}`)
       }
 
       // Atualizar status no storage
@@ -86,11 +140,11 @@ export async function POST(request: NextRequest) {
       const utmifyEnabled = process.env.UTMIFY_ENABLED === 'true'
       const utmifyToken = process.env.UTMIFY_API_TOKEN
       let utmifySuccess = false
-      console.log(`[FALLBACK] 🔍 DEBUG UTMify: ENABLED=${utmifyEnabled}, TOKEN=${!!utmifyToken}`)
+      console.log(`[CHECK-STATUS] 🔍 DEBUG UTMify: ENABLED=${utmifyEnabled}, TOKEN=${!!utmifyToken}`)
       
       if (utmifyEnabled && utmifyToken) {
         try {
-          console.log(`[FALLBACK] Enviando status PAID para UTMify`)
+          console.log(`[CHECK-STATUS] Enviando status PAID para UTMify`)
 
           const utmifyData = {
             orderId: transactionId.toString(),
@@ -104,7 +158,7 @@ export async function POST(request: NextRequest) {
               name: transactionData.customer.name,
               email: transactionData.customer.email,
               phone: transactionData.customer.phone,
-              document: transactionData.customer.document.number,
+              document: transactionData.customer.document?.number || transactionData.customer.document,
               country: "BR",
               ip: transactionData.ip || "unknown"
             },
@@ -142,13 +196,13 @@ export async function POST(request: NextRequest) {
           })
 
           if (utmifyResponse.ok) {
-            console.log(`[FALLBACK] ✅ UTMify notificado com sucesso (PAID)`)
+            console.log(`[CHECK-STATUS] ✅ UTMify notificado com sucesso (PAID)`)
             utmifySuccess = true
           } else {
-            console.error(`[FALLBACK] ❌ Erro ao notificar UTMify:`, utmifyResponse.status)
+            console.error(`[CHECK-STATUS] ❌ Erro ao notificar UTMify:`, utmifyResponse.status)
           }
         } catch (error) {
-          console.error(`[FALLBACK] Erro ao enviar para UTMify:`, error)
+          console.error(`[CHECK-STATUS] Erro ao enviar para UTMify:`, error)
         }
       }
 
@@ -184,7 +238,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("[FALLBACK] Erro:", error)
+    console.error("[CHECK-STATUS] Erro:", error)
     return NextResponse.json({
       success: false,
       error: "Erro ao verificar status da transação",

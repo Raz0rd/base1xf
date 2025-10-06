@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const conversionData: RatoeiraConversionData = await request.json()
     
-    console.log("[v0] Ratoeira Conversion - Processing conversion:", conversionData)
+    //console.log("[v0] Ratoeira Conversion - Processing conversion:", conversionData)
 
     // Para Ratoeira ADS, precisamos fazer uma requisição HTTP para a API deles
     // Baseado nos dados que você mostrou, eles esperam estes campos:

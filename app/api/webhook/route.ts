@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
             console.log("[v0] ❌ Nenhum pedido encontrado no order storage")
           }
         } else {
-          console.log("[v0] ✅ UTMs já recuperados do metadata, não precisa do fallback")
+          console.log("col-start-1 row-start-1 text-center text-sm sm:text-base font-bold text-white ✅ UTMs já recuperados do metadata, não precisa do fallback")
         }
         
       } catch (error) {

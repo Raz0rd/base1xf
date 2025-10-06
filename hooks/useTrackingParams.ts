@@ -102,7 +102,7 @@ export const useTrackingParams = () => {
       // Armazenar no localStorage para persistir durante a sessão
       localStorage.setItem('trackingParams', JSON.stringify(params))
 
-      console.log('[v0] Tracking parameters captured:', params)
+      //console.log('[v0] Tracking parameters captured:', params)
     }
   }, [])
 
@@ -115,7 +115,7 @@ export const useTrackingParams = () => {
           const parsed = JSON.parse(stored)
           setTrackingParams(parsed)
         } catch (error) {
-          console.error('[v0] Error parsing stored tracking params:', error)
+          //console.error('[v0] Error parsing stored tracking params:', error)
         }
       }
     }
@@ -133,7 +133,7 @@ export const useTrackingParams = () => {
           setUserIP('unknown')
         }
       } catch (error) {
-        console.error('[v0] Error fetching user IP:', error)
+        //console.error('[v0] Error fetching user IP:', error)
         setUserIP('unknown')
       }
     }
