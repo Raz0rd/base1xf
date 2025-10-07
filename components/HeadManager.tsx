@@ -67,46 +67,64 @@ export default function HeadManager() {
     </>
   ) : null;
 
-  // Scripts UTMify - TODAS AS PÁGINAS
-  // Obter Pixel ID do UTMify da variável de ambiente
+  // Scripts UTMify - Injeção Direta no DOM (TODAS AS PÁGINAS)
   const utmifyPixelId = process.env.NEXT_PUBLIC_PIXELID_UTMFY;
   
-  // Debug: Log quando UTMify scripts são carregados
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || typeof window === 'undefined') return;
     
-    if (utmifyPixelId) {
-      //console.log(`[UTMify Scripts] Carregando scripts na página: ${pathname} com Pixel ID: ${utmifyPixelId}`);
-    } else {
-      //console.warn(`[UTMify Scripts] ATENÇÃO: NEXT_PUBLIC_PIXELID_UTMFY não configurado! Scripts não serão carregados.`);
+    // Verificar se Pixel ID está configurado
+    if (!utmifyPixelId) {
+      console.warn('[UTMify] NEXT_PUBLIC_PIXELID_UTMFY não configurado');
+      return;
     }
+
+    // Remover scripts antigos se existirem
+    const oldPixelScript = document.getElementById('utmify-pixel-init');
+    const oldGoogleScript = document.getElementById('utmify-google-pixel');
+    const oldUtmsScript = document.getElementById('utmify-utms-script');
+    
+    if (oldPixelScript) oldPixelScript.remove();
+    if (oldGoogleScript) oldGoogleScript.remove();
+    if (oldUtmsScript) oldUtmsScript.remove();
+
+    // 1. Injetar script de inicialização do Pixel Google
+    const pixelInitScript = document.createElement('script');
+    pixelInitScript.id = 'utmify-pixel-init';
+    pixelInitScript.innerHTML = `
+      window.googlePixelId = "${utmifyPixelId}";
+      var a = document.createElement("script");
+      a.id = "utmify-google-pixel";
+      a.setAttribute("async", "");
+      a.setAttribute("defer", "");
+      a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel-google.js");
+      document.head.appendChild(a);
+    `;
+    document.head.appendChild(pixelInitScript);
+
+    // 2. Injetar script de UTMs
+    const utmsScript = document.createElement('script');
+    utmsScript.id = 'utmify-utms-script';
+    utmsScript.src = 'https://cdn.utmify.com.br/scripts/utms/latest.js';
+    utmsScript.setAttribute('data-utmify-prevent-xcod-sck', '');
+    utmsScript.setAttribute('data-utmify-prevent-subids', '');
+    utmsScript.async = true;
+    utmsScript.defer = true;
+    document.head.appendChild(utmsScript);
+
+    console.log(`[UTMify] Scripts injetados com sucesso | Página: ${pathname} | Pixel ID: ${utmifyPixelId}`);
+
+    // Cleanup: remover scripts ao desmontar
+    return () => {
+      const pixelInit = document.getElementById('utmify-pixel-init');
+      const googlePixel = document.getElementById('utmify-google-pixel');
+      const utms = document.getElementById('utmify-utms-script');
+      
+      if (pixelInit) pixelInit.remove();
+      if (googlePixel) googlePixel.remove();
+      if (utms) utms.remove();
+    };
   }, [mounted, pathname, utmifyPixelId]);
-  
-  const utmifyScripts = utmifyPixelId ? (
-    <>
-      <script 
-        key="utmify-pixel"
-        dangerouslySetInnerHTML={{
-          __html: `
-            window.googlePixelId = "${utmifyPixelId}";
-            var a = document.createElement("script");
-            a.setAttribute("async", "");
-            a.setAttribute("defer", "");
-            a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel-google.js");
-            document.head.appendChild(a);
-          `
-        }}
-      />
-      <script 
-        key="utmify-utms"
-        src="https://cdn.utmify.com.br/scripts/utms/latest.js"
-        data-utmify-prevent-xcod-sck
-        data-utmify-prevent-subids
-        async
-        defer
-      />
-    </>
-  ) : null;
 
   return (
     <Head>
@@ -122,8 +140,7 @@ export default function HeadManager() {
       {/* Scripts de Rastreamento do Ratoeira ADS */}
       {ratoeiraScripts}
       
-      {/* Scripts UTMify - OFFERPAGE E CHECKOUT */}
-      {utmifyScripts}
+      {/* Scripts UTMify - Injetados via useEffect diretamente no DOM */}
       
       {/* Outros Scripts de Rastreamento */}
       {headContent.trackingScripts && (
