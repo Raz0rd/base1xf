@@ -67,12 +67,7 @@ export default function HeadManager() {
     </>
   ) : null;
 
-  // Scripts UTMify - APENAS OFFERPAGE E CHECKOUT (NÃO na whitepage)
-  const isOfferpage = pathname === '/';
-  const isCheckout = pathname === '/checkout';
-  const isWhitepage = pathname === '/whitepage';
-  const needsUtmifyScripts = (isOfferpage || isCheckout) && !isWhitepage;
-  
+  // Scripts UTMify - TODAS AS PÁGINAS
   // Obter Pixel ID do UTMify da variável de ambiente
   const utmifyPixelId = process.env.NEXT_PUBLIC_PIXELID_UTMFY;
   
@@ -80,16 +75,14 @@ export default function HeadManager() {
   useEffect(() => {
     if (!mounted) return;
     
-    if (needsUtmifyScripts) {
-      if (utmifyPixelId) {
-        //console.log(`[UTMify Scripts] Carregando scripts na página: ${pathname} com Pixel ID: ${utmifyPixelId}`);
-      } else {
-        //console.warn(`[UTMify Scripts] ATENÇÃO: NEXT_PUBLIC_PIXELID_UTMFY não configurado! Scripts não serão carregados.`);
-      }
+    if (utmifyPixelId) {
+      //console.log(`[UTMify Scripts] Carregando scripts na página: ${pathname} com Pixel ID: ${utmifyPixelId}`);
+    } else {
+      //console.warn(`[UTMify Scripts] ATENÇÃO: NEXT_PUBLIC_PIXELID_UTMFY não configurado! Scripts não serão carregados.`);
     }
-  }, [mounted, pathname, needsUtmifyScripts, utmifyPixelId]);
+  }, [mounted, pathname, utmifyPixelId]);
   
-  const utmifyScripts = needsUtmifyScripts && utmifyPixelId ? (
+  const utmifyScripts = utmifyPixelId ? (
     <>
       <script 
         key="utmify-pixel"
