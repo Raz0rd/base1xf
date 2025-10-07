@@ -1,10 +1,12 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from 'next/server'
+import { getBrazilTimestamp } from '@/lib/brazil-time'
 
 export async function POST(request: Request) {
   try {
     const orderData = await request.json()
     
-    console.log("\n🎯 [UTMify API] Processando pedido para UTMify")
+    const brazilTimestamp = getBrazilTimestamp()
+    console.log(`\n[Brazil Timestamp] ${brazilTimestamp}`)
     console.log("📊 [UTMify API] Status:", orderData.status)
     console.log("💰 [UTMify API] Valor:", orderData.amount)
     
@@ -38,8 +40,8 @@ export async function POST(request: Request) {
       platform: "RecarGames", // Nome da nossa plataforma
       paymentMethod: "pix",
       status: orderData.status === "pending" ? "waiting_payment" : "paid",
-      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      approvedDate: orderData.status === "paid" ? new Date().toISOString().replace('T', ' ').substring(0, 19) : null,
+      createdAt: getBrazilTimestamp(),
+      approvedDate: orderData.status === "paid" ? getBrazilTimestamp() : null,
       refundedAt: null,
       customer: {
         name: orderData.customerData?.name || "",

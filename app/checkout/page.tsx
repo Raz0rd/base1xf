@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react"
 import Toast from "../../components/toast"
 import { useUtmParams } from "@/hooks/useUtmParams"
 import QRCode from "qrcode"
+import { getBrazilTimestamp } from "@/lib/brazil-time"
 
 export default function CheckoutPage() {
   const searchParams = useSearchParams()
@@ -540,7 +541,7 @@ export default function CheckoutPage() {
         platform: "RecarGames",
         paymentMethod: "pix",
         status: "waiting_payment",
-        createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        createdAt: getBrazilTimestamp(),
         approvedDate: null,
         refundedAt: null,
         customer: {
@@ -619,8 +620,8 @@ export default function CheckoutPage() {
         platform: "RecarGames",
         paymentMethod: "pix",
         status: "paid",
-        createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        approvedDate: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        createdAt: getBrazilTimestamp(),
+        approvedDate: getBrazilTimestamp(),
         refundedAt: null,
         customer: {
           name: fullName,

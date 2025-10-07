@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { orderStorageService } from "@/lib/order-storage"
+import { getBrazilTimestamp } from "@/lib/brazil-time"
 
 // Função para consultar status no BlackCat
 async function checkStatusBlackCat(transactionId: string) {
@@ -151,8 +152,8 @@ export async function POST(request: NextRequest) {
             platform: "RecarGames",
             paymentMethod: "pix",
             status: "paid", // Status UTMify para paid
-            createdAt: new Date(transactionData.createdAt).toISOString().replace('T', ' ').substring(0, 19),
-            approvedDate: new Date(transactionData.paidAt).toISOString().replace('T', ' ').substring(0, 19),
+            createdAt: getBrazilTimestamp(new Date(transactionData.createdAt)),
+            approvedDate: getBrazilTimestamp(new Date(transactionData.paidAt)),
             refundedAt: null,
             customer: {
               name: transactionData.customer.name,

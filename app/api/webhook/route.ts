@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { orderStorageService } from '@/lib/order-storage'
+import { getBrazilTimestamp } from '@/lib/brazil-time'
 
 interface BlackCatTransaction {
   id: string
@@ -139,8 +140,8 @@ export async function POST(request: NextRequest) {
         platform: "RecarGames",
         paymentMethod: "pix",
         status: isPaid ? "paid" : "waiting_payment", // Status correto do UTMify
-        createdAt: new Date(transaction.createdAt).toISOString().replace('T', ' ').substring(0, 19),
-        approvedDate: isPaid && transaction.paidAt ? new Date(transaction.paidAt).toISOString().replace('T', ' ').substring(0, 19) : null,
+        createdAt: getBrazilTimestamp(new Date(transaction.createdAt)),
+        approvedDate: isPaid && transaction.paidAt ? getBrazilTimestamp(new Date(transaction.paidAt)) : null,
         refundedAt: null,
         customer: {
           name: transaction.customer.name,
