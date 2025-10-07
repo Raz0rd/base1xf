@@ -175,6 +175,16 @@ export default function HomePage() {
       }
     })
     
+    // Capturar Adspect Click ID
+    // Prioridade: gclid (Google Ads) > cid > clickid > click_id
+    const adspectCid = urlParams.get('gclid') || 
+                       urlParams.get('cid') || 
+                       urlParams.get('clickid') || 
+                       urlParams.get('click_id')
+    if (adspectCid) {
+      sessionStorage.setItem('adspect_cid', adspectCid)
+    }
+    
     const utmParams = getUtmObject()
   }, [])
 

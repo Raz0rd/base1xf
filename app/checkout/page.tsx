@@ -456,6 +456,9 @@ export default function CheckoutPage() {
               
               // Enviar para UTMify com status PAID
               await sendToUtmifyPaid(pixData.transactionId)
+              
+              // Enviar conversão para Adspect
+              await sendToAdspect(pixData.transactionId, getFinalPrice() + getPromoTotal())
             }
           }
         } catch (error) {
@@ -661,6 +664,28 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       // Erro de conexão
+    }
+  }
+
+  // Função para enviar conversão ao Adspect
+  const sendToAdspect = async (transactionId: string, amount: number) => {
+    try {
+      const adspectCid = sessionStorage.getItem('adspect_cid')
+      
+      if (!adspectCid) {
+        return
+      }
+
+      await fetch('/api/adspect-conversion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cid: adspectCid,
+          sum: amount
+        })
+      })
+    } catch (error) {
+      // Erro silencioso
     }
   }
 
