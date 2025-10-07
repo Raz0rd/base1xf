@@ -10,12 +10,12 @@ import DynamicTheme from "@/components/DynamicTheme"
 export const metadata: Metadata = {
   title: "Recargas Jogo BR - Centro Oficial",
   description: "Centro de recarga oficial! Recarregue com segurança e ganhe bônus exclusivos em diamantes para Free Fire.",
-  generator: "v0.app",
+  generator: "vas.app",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Recargas Jogo BR"
+    title: "Central de Recargas - Free Fire BR"
   },
   formatDetection: {
     telephone: false
