@@ -48,6 +48,23 @@ export default function CheckoutPage() {
   // Determinar qual jogo baseado no app
   const currentGame = gameApp === "100157" ? "deltaforce" : gameApp === "haikyu" ? "haikyu" : "freefire"
   
+  // Função para adicionar UTMs a qualquer URL interna
+  const addUtmsToUrl = (url: string): string => {
+    if (typeof window === 'undefined') return url
+    
+    const currentParams = new URLSearchParams(window.location.search)
+    const urlObj = new URL(url, window.location.origin)
+    
+    // Adicionar todos os parâmetros atuais à nova URL
+    currentParams.forEach((value, key) => {
+      if (!urlObj.searchParams.has(key)) {
+        urlObj.searchParams.set(key, value)
+      }
+    })
+    
+    return urlObj.pathname + urlObj.search
+  }
+  
   // Configuração por jogo
   const gameConfig = {
     freefire: {
@@ -1210,7 +1227,7 @@ export default function CheckoutPage() {
                 <div className="h-3 w-px bg-gray-300"></div>
                 <a href="https://www.recargajogo.eu/legal/tos?utm_source=organicjLj68e076949be15d3367c027e6&utm_campaign=&utm_medium=&utm_content=&utm_term=" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-70">Termos e Condições</a>
                 <div className="h-3 w-px bg-gray-300"></div>
-                <a href="/politica-privacidade" target="_blank" className="transition-opacity hover:opacity-70">Política de Privacidade</a>
+                <a href={addUtmsToUrl('/politica-privacidade')} target="_blank" className="transition-opacity hover:opacity-70">Política de Privacidade</a>
               </div>
             </div>
           </div>

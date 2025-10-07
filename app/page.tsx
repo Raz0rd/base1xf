@@ -30,11 +30,6 @@ export default function HomePage() {
   const [selectedSpecialOffer, setSelectedSpecialOffer] = useState<string | null>(null)
   const [showCookieBanner, setShowCookieBanner] = useState(false)
   const [showFreeItemModal, setShowFreeItemModal] = useState(false)
-  
-  // Debug: Log quando showCookieBanner muda
-  useEffect(() => {
-    console.log('[COOKIE] Estado showCookieBanner:', showCookieBanner)
-  }, [showCookieBanner])
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("PIX")
   const [showExitMessage, setShowExitMessage] = useState(false)
   const [exitMessage, setExitMessage] = useState("")
@@ -49,6 +44,23 @@ export default function HomePage() {
       searchParams.set('app', appId)
       router.push(`/?${searchParams.toString()}`)
     }
+  }
+
+  // Função para adicionar UTMs a qualquer URL interna
+  const addUtmsToUrl = (url: string): string => {
+    if (typeof window === 'undefined') return url
+    
+    const currentParams = new URLSearchParams(window.location.search)
+    const urlObj = new URL(url, window.location.origin)
+    
+    // Adicionar todos os parâmetros atuais à nova URL
+    currentParams.forEach((value, key) => {
+      if (!urlObj.searchParams.has(key)) {
+        urlObj.searchParams.set(key, value)
+      }
+    })
+    
+    return urlObj.pathname + urlObj.search
   }
   
   // Configurações dinâmicas por jogo
@@ -115,22 +127,16 @@ export default function HomePage() {
     if (typeof window === 'undefined') return
     
     const cookieConsent = localStorage.getItem('cookieConsent')
-    console.log('[COOKIE] Consentimento atual:', cookieConsent)
     
     if (!cookieConsent) {
-      console.log('[COOKIE] Mostrando banner')
       setShowCookieBanner(true)
-    } else {
-      console.log('[COOKIE] Banner já foi aceito, não mostrando')
     }
   }, [])
 
   // Função para aceitar cookies
   const handleAcceptCookies = () => {
-    console.log('[COOKIE] Usuário aceitou cookies')
     localStorage.setItem('cookieConsent', 'true')
     setShowCookieBanner(false)
-    console.log('[COOKIE] Banner fechado')
   }
   
   // Array de banners para carousel (4 banners diferentes)
@@ -170,10 +176,6 @@ export default function HomePage() {
     })
     
     const utmParams = getUtmObject()
-    console.log('[DEBUG] Página carregada e UTM params salvos no sessionStorage:', {
-      pathname: window.location.pathname,
-      utmParams
-    })
   }, [])
 
 
@@ -226,7 +228,6 @@ export default function HomePage() {
         throw new Error('Falha ao copiar')
       }
     } catch (error) {
-      console.error('Erro ao copiar:', error)
       // Como último recurso, mostrar um prompt para o usuário copiar manualmente
       const userAgent = navigator.userAgent.toLowerCase()
       const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent)
@@ -341,11 +342,9 @@ export default function HomePage() {
         setAvatarInfo(avatarData)
         return avatarData
       } else {
-        console.log("Avatar não encontrado, usando fallback")
         return null
       }
     } catch (error) {
-      console.error("Erro ao buscar avatar:", error)
       return null
     }
   }
@@ -407,7 +406,6 @@ export default function HomePage() {
         setLoginError(errorMessage)
       }
     } catch (error) {
-      console.error("[v0] Erro ao fazer login:", error)
       setIsLoggedIn(false)
       setLoginError("Erro de conexão. Verifique sua internet e tente novamente.")
     } finally {
@@ -2072,7 +2070,7 @@ export default function HomePage() {
                   <div className="h-3 w-px bg-gray-300"></div>
                   <a href="https://www.recargajogo.eu/legal/tos?utm_source=organicjLj68e076949be15d3367c027e6&utm_campaign=&utm_medium=&utm_content=&utm_term=" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-70">Termos e Condições</a>
                   <div className="h-3 w-px bg-gray-300"></div>
-                  <a href="/politica-privacidade" target="_blank" className="transition-opacity hover:opacity-70">Política de Privacidade</a>
+                  <a href={mounted ? addUtmsToUrl('/politica-privacidade') : '/politica-privacidade'} target="_blank" className="transition-opacity hover:opacity-70">Política de Privacidade</a>
                 </div>
               </div>
             </div>
@@ -2202,7 +2200,7 @@ export default function HomePage() {
                       A gente usa cookies para melhorar a sua experiência no site. Ao continuar navegando, você concorda com a nossa
                     </span>{' '}
                     <a 
-                      href="/politica-privacidade" 
+                      href={mounted ? addUtmsToUrl('/politica-privacidade') : '/politica-privacidade'} 
                       target="_blank"
                       className="underline hover:text-white/80"
                     >

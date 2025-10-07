@@ -75,7 +75,6 @@ export default function HeadManager() {
     
     // Verificar se Pixel ID está configurado
     if (!utmifyPixelId) {
-      console.warn('[UTMify] NEXT_PUBLIC_PIXELID_UTMFY não configurado');
       return;
     }
 
@@ -111,8 +110,6 @@ export default function HeadManager() {
     utmsScript.async = true;
     utmsScript.defer = true;
     document.head.appendChild(utmsScript);
-
-    console.log(`[UTMify] Scripts injetados com sucesso | Página: ${pathname} | Pixel ID: ${utmifyPixelId}`);
 
     // Cleanup: remover scripts ao desmontar
     return () => {

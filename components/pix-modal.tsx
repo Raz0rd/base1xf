@@ -181,30 +181,14 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
       mobileDebug.log("PIX: Status definido como pending")
       mobileDebug.log("PIX: QR Code gerado com sucesso - aguardando confirmação do BlackCat via webhook")
       
-      // DEBUG CLIENT-SIDE: Mostrar informações importantes no console
-      console.group("🔍 [DEBUG PIX] Informações do pagamento gerado")
-      console.log("📦 Transaction ID:", data.transactionId)
-      console.log("💰 Valor:", amount)
-      console.log("👤 Cliente:", customerData)
-      console.log("🎯 UTM Parameters:", finalUtmParams)
-      console.log("🔗 Webhook URL esperada:", `${window.location.origin}/api/webhook`)
-      console.log("⏰ Timestamp:", new Date().toISOString())
-      console.log("🚨 IMPORTANTE: BlackCat deve estar configurado para enviar webhook!")
-      console.log("🚨 URL do webhook no BlackCat:", `${window.location.origin}/api/webhook`)
-      console.log("🚨 Se não receber webhook em 30s, verificar configuração no BlackCat")
-      console.groupEnd()
-      
       // Sistema de fallback - verificar status a cada 5 segundos
       let fallbackInterval: NodeJS.Timeout
       let fallbackAttempts = 0
       const maxFallbackAttempts = 43 // 5 minutos (43 x 7s)
 
       const startFallbackCheck = () => {
-        console.log("🔄 [FALLBACK] Iniciando verificação de status a cada 7 segundos")
-        
         fallbackInterval = setInterval(async () => {
           fallbackAttempts++
-          console.log(`🔄 [FALLBACK] Tentativa ${fallbackAttempts}/${maxFallbackAttempts} - Verificando status...`)
 
           try {
             const statusResponse = await fetch('/api/check-transaction-status', {
@@ -214,27 +198,16 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
             })
 
             const statusData = await statusResponse.json()
-            console.log(`🔄 [FALLBACK] Status atual:`, statusData.status)
 
             if (statusData.status === 'paid') {
-              console.log("🎉 [FALLBACK] PAGAMENTO CONFIRMADO!")
               setPaymentStatus("paid")
               setShowProcessing(true)
               clearInterval(fallbackInterval)
-              
-              // Mostrar no console para o cliente
-              console.group("🎉 [PAGAMENTO CONFIRMADO] Via Fallback")
-              console.log("✅ Status:", "PAID")
-              console.log("📦 Transaction ID:", data.transactionId)
-              console.log("💰 Valor:", amount)
-              console.log("⏰ Confirmado em:", new Date().toLocaleString())
-              console.groupEnd()
             } else if (fallbackAttempts >= maxFallbackAttempts) {
-              console.warn("⏰ [FALLBACK] Tempo limite atingido, parando verificações")
               clearInterval(fallbackInterval)
             }
           } catch (error) {
-            console.error("❌ [FALLBACK] Erro ao verificar status:", error)
+            // Erro ao verificar status
           }
         }, 7000) // A cada 7 segundos (evitar 429)
       }
@@ -247,20 +220,9 @@ export default function PixModal({ isOpen, onClose, amount, customerData, utmPar
       const enhancedOnClose = () => {
         if (fallbackInterval) {
           clearInterval(fallbackInterval)
-          console.log("🔄 [FALLBACK] Verificações interrompidas - modal fechado")
         }
         originalOnClose()
       }
-      
-      // Aguardar 30 segundos e verificar se webhook foi recebido
-      setTimeout(() => {
-        console.group("⏰ [DEBUG WEBHOOK] Verificação após 30 segundos")
-        console.log("🔍 Verificando se webhook foi recebido...")
-        console.log("📦 Transaction ID para verificar:", data.transactionId)
-        console.log("🚨 Se não apareceu log de webhook, BlackCat não está enviando!")
-        console.log("🔄 Fallback está rodando a cada 7s como backup")
-        console.groupEnd()
-      }, 30000)
 
     } catch (error) {
       mobileDebug.error("pix: Erro geral", error)

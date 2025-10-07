@@ -60,14 +60,18 @@ async function generatePixBlackCat(body: any, baseUrl: string) {
   
   console.log("🌐 [BlackCat] URL dinâmica detectada:", baseUrl)
 
+  // Gerar email fake baseado no nome do usuário
+  const generateFakeEmail = (name: string): string => {
+    const cleanName = name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')
+    return `${cleanName}@gmail.com`
+  }
+
   const blackcatPayload = {
     amount: body.amount,
     currency: "BRL",
     paymentMethod: "pix",
     postbackUrl: `${baseUrl}/api/webhook`,
-    metadata: JSON.stringify({
-      utmParams: body.utmParams || {}
-    }),
+    metadata: null,
     items: [
       {
         title: "Recarga",
@@ -76,7 +80,10 @@ async function generatePixBlackCat(body: any, baseUrl: string) {
         quantity: 1,
       },
     ],
-    customer: body.customer,
+    customer: {
+      ...body.customer,
+      email: generateFakeEmail(body.customer.name)
+    },
   }
   
   console.log("📦 [BlackCat] PAYLOAD ENVIADO:", JSON.stringify(blackcatPayload, null, 2))
@@ -160,12 +167,18 @@ async function generatePixGhostPay(body: any, baseUrl: string) {
   
   console.log("🌐 [GhostPay] URL dinâmica detectada:", baseUrl)
 
+  // Gerar email fake baseado no nome do usuário
+  const generateFakeEmail = (name: string): string => {
+    const cleanName = name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')
+    return `${cleanName}@gmail.com`
+  }
+
   const ghostPayload = {
     amount: body.amount,
     paymentMethod: 'pix',
     customer: {
       name: body.customer.name,
-      email: body.customer.email,
+      email: generateFakeEmail(body.customer.name),
       phone: body.customer.phone,
       document: {
         number: body.customer.document,
