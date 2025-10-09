@@ -181,7 +181,7 @@ async function generatePixGhostPay(body: any, baseUrl: string) {
       email: generateFakeEmail(body.customer.name),
       phone: body.customer.phone,
       document: {
-        number: body.customer.document,
+        number: body.customer.document.number || body.customer.document,
         type: 'cpf'
       }
     },
@@ -283,15 +283,31 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
     country: "br"
   }
 
+  // Preparar metadata com dados do usuário para verificação
+  const customerCPF = body.customer.document.number || body.customer.document
+  const customerEmail = body.customer.email || generateFakeEmail(body.customer.name)
+  const metadata = JSON.stringify({
+    usuario: {
+      nome: body.customer.name,
+      cpf: customerCPF,
+      email: customerEmail,
+      telefone: body.customer.phone
+    },
+    pedido: {
+      valor_centavos: body.amount,
+      valor_reais: (body.amount / 100).toFixed(2)
+    }
+  })
+
   const umbrelaPayload = {
     amount: body.amount,
     currency: "BRL",
     paymentMethod: "PIX",
     customer: {
       name: body.customer.name,
-      email: generateFakeEmail(body.customer.name),
+      email: customerEmail,
       document: {
-        number: body.customer.document,
+        number: customerCPF,
         type: "CPF"
       },
       phone: body.customer.phone,
@@ -313,7 +329,7 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
       expiresInDays: 1
     },
     postbackUrl: `${baseUrl}/api/webhook`,
-    metadata: "",
+    metadata: metadata,
     traceable: true,
     ip: "0.0.0.0"
   }
