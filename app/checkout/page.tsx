@@ -34,7 +34,6 @@ export default function CheckoutPage() {
   const [timerActive, setTimerActive] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'expired'>('pending')
   const [showPromoModal, setShowPromoModal] = useState(false)
-  const [showWarningModal, setShowWarningModal] = useState(false)
   const [selectedPromos, setSelectedPromos] = useState<string[]>([])
 
   // Get URL parameters
@@ -101,7 +100,7 @@ export default function CheckoutPage() {
 
   // Bloquear scroll do background quando modais estão abertos
   useEffect(() => {
-    if (showPromoModal || showWarningModal) {
+    if (showPromoModal) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -110,7 +109,7 @@ export default function CheckoutPage() {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [showPromoModal, showWarningModal])
+  }, [showPromoModal])
 
   useEffect(() => {
     setPlayerName(playerId)
@@ -243,7 +242,6 @@ export default function CheckoutPage() {
     // Mostrar modal de promoção apenas para Free Fire
     if (config.showOrderBump) {
       setShowPromoModal(true)
-      setShowWarningModal(true) // Mostrar aviso na frente
     } else {
       // Para Delta Force e Haikyu, ir direto para finalizar
       handleFinalizeOrder()
@@ -974,8 +972,8 @@ export default function CheckoutPage() {
 
                       {/* Informações da empresa */}
                       <div className="text-center text-gray-500 text-sm mb-4">
-                        KAPTPAY TECNOLOGIA DE PAGAMENTOS<br/>
-                        CNPJ: 62.912.988/0001-12
+                        VENDAS ONLINE STORE LTDA<br/>
+                        CNPJ: 27.945.891/0001-05
                       </div>
 
                       {/* Código PIX */}
@@ -1039,7 +1037,7 @@ export default function CheckoutPage() {
                           <li>Utilize as informações acima para realizar o pagamento.</li>
                           <li>Revise as informações e pronto!</li>
                         </ol>
-                        <p>Seu pedido está sendo processado pelo nosso parceiro KAPTPAY.</p>
+                        <p>Seu pedido está sendo processado pelo nosso parceiro VENDAS ONLINE STORE LTDA.</p>
                         <p>Você receberá seus {config.coinName.toLowerCase()} após recebermos a confirmação do pagamento. Isso ocorre geralmente em alguns minutos após a realização do pagamento na sua instituição financeira.</p>
                         <p>Em caso de dúvidas entre em contato com o suporte.</p>
                       </div>
@@ -1198,44 +1196,6 @@ export default function CheckoutPage() {
                 className="w-full h-10 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
               >
                 Não, obrigado
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Aviso (aparece na frente do modal de promoção) */}
-      {showWarningModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-60 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            {/* Header */}
-            <div className="p-6 pb-4 border-b">
-              <h3 className="text-lg font-bold text-center text-gray-800">⚠️ Atenção Importante</h3>
-            </div>
-            
-            {/* Content */}
-            <div className="p-6">
-              <p className="text-sm text-gray-700 leading-relaxed">
-                <span className="font-bold">Atenção:</span> devido a
-                manutenções temporárias em alguns sistemas de pagamento no Brasil, 
-                podem ocorrer <span className="font-semibold">instabilidades ao tentar pagar valores acima de R$80</span>.
-                <br /><br />
-                Caso encontre qualquer erro ou dificuldade ao efetuar o pagamento, 
-                recomendamos <span className="font-semibold">selecionar um produto de valor inicial menor</span>.
-                Dessa forma, o pagamento será processado normalmente.
-                <br /><br />
-                Se desejar, você pode realizar dois pedidos separados — 
-                <span className="font-semibold">nossa equipe fará a entrega de todos os itens juntos diretamente via ID autenticado, sem custo adicional</span>.
-              </p>
-            </div>
-            
-            {/* Footer */}
-            <div className="p-6 pt-0">
-              <button
-                onClick={() => setShowWarningModal(false)}
-                className="w-full h-12 text-base font-bold bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-              >
-                Entendi
               </button>
             </div>
           </div>

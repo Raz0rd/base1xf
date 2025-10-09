@@ -252,10 +252,131 @@ async function generatePixGhostPay(body: any, baseUrl: string) {
   return normalizedResponse
 }
 
+// Função para gerar PIX via Umbrela
+async function generatePixUmbrela(body: any, baseUrl: string) {
+  const apiKey = process.env.UMBRELA_API_KEY
+  console.log("\n☂️ [Umbrela] Verificando autenticação:", apiKey ? "✓ Token presente" : "✗ Token ausente")
+  
+  if (!apiKey) {
+    console.error("❌ [Umbrela] UMBRELA_API_KEY não configurado")
+    throw new Error("Configuração de API não encontrada")
+  }
+
+  console.log("📤 [Umbrela] REQUEST BODY:", JSON.stringify(body, null, 2))
+  console.log("🌐 [Umbrela] URL dinâmica detectada:", baseUrl)
+
+  // Gerar email fake baseado no nome do usuário
+  const generateFakeEmail = (name: string): string => {
+    const cleanName = name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')
+    return `${cleanName}@gmail.com`
+  }
+
+  // Endereço padrão (obrigatório para Umbrela)
+  const defaultAddress = {
+    street: "Rua Digital",
+    streetNumber: "123",
+    complement: "",
+    zipCode: "01000000",
+    neighborhood: "Centro",
+    city: "São Paulo",
+    state: "SP",
+    country: "br"
+  }
+
+  const umbrelaPayload = {
+    amount: body.amount,
+    currency: "BRL",
+    paymentMethod: "PIX",
+    customer: {
+      name: body.customer.name,
+      email: generateFakeEmail(body.customer.name),
+      document: {
+        number: body.customer.document,
+        type: "CPF"
+      },
+      phone: body.customer.phone,
+      externalRef: "",
+      address: defaultAddress
+    },
+    shipping: {
+      fee: 0,
+      address: defaultAddress
+    },
+    items: [{
+      title: "Recarga Free Fire",
+      unitPrice: body.amount,
+      quantity: 1,
+      tangible: false,
+      externalRef: ""
+    }],
+    pix: {
+      expiresInDays: 1
+    },
+    postbackUrl: `${baseUrl}/api/webhook`,
+    metadata: "",
+    traceable: true,
+    ip: "0.0.0.0"
+  }
+  
+  console.log("📦 [Umbrela] PAYLOAD ENVIADO:", JSON.stringify(umbrelaPayload, null, 2))
+  console.log("🎯 [Umbrela] URL:", "https://api-gateway.umbrellapag.com/api/user/transactions")
+  console.log("🔑 [Umbrela] API Key:", apiKey.substring(0, 10) + "...")
+  
+  const response = await fetch("https://api-gateway.umbrellapag.com/api/user/transactions", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "User-Agent": "UMBRELLAB2B/1.0",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(umbrelaPayload),
+  })
+
+  console.log("📡 [Umbrela] RESPONSE STATUS:", response.status)
+  console.log("📊 [Umbrela] RESPONSE HEADERS:", Object.fromEntries(response.headers.entries()))
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error("❌ [Umbrela] ERROR RESPONSE:", {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorText,
+      headers: Object.fromEntries(response.headers.entries())
+    })
+    
+    throw new Error(`Erro na API de pagamento: ${response.status}`)
+  }
+
+  const data = await response.json()
+  console.log("✅ [Umbrela] SUCCESS RESPONSE:", JSON.stringify(data, null, 2))
+
+  // Extrair informações da resposta Umbrela
+  const transactionId = data.data?.id
+  const pixCode = data.data?.qrCode
+  const qrCodeImage = data.data?.qrCode // Umbrela retorna QR Code direto no texto
+  
+  console.log("🔍 [Umbrela] DADOS EXTRAÍDOS:", {
+    transactionId,
+    pixCode: pixCode ? `${pixCode.substring(0, 50)}...` : null,
+    status: data.data?.status
+  })
+
+  const normalizedResponse = {
+    ...data.data,
+    transactionId,
+    pixCode,
+    qrCode: qrCodeImage,
+    success: true
+  }
+  
+  console.log("🎉 [Umbrela] RESPOSTA NORMALIZADA:", JSON.stringify(normalizedResponse, null, 2))
+  return normalizedResponse
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Escolher gateway baseado na variável de ambiente
-    const gateway = process.env.PAYMENT_GATEWAY || 'blackcat' // 'blackcat' ou 'ghostpay'
+    const gateway = process.env.PAYMENT_GATEWAY || 'blackcat' // 'blackcat', 'ghostpay' ou 'umbrela'
     console.log("\n💳 [GATEWAY] Gateway selecionado:", gateway.toUpperCase())
     
     const body = await request.json()
@@ -269,6 +390,8 @@ export async function POST(request: NextRequest) {
     
     if (gateway === 'ghostpay') {
       result = await generatePixGhostPay(body, baseUrl)
+    } else if (gateway === 'umbrela') {
+      result = await generatePixUmbrela(body, baseUrl)
     } else {
       result = await generatePixBlackCat(body, baseUrl)
     }

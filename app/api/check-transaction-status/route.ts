@@ -65,6 +65,37 @@ async function checkStatusGhostPay(transactionId: string) {
   return transactionData
 }
 
+// Função para consultar status no Umbrela
+async function checkStatusUmbrela(transactionId: string) {
+  const umbrelaUrl = `https://api-gateway.umbrellapag.com/api/user/transactions/${transactionId}`
+  const apiKey = process.env.UMBRELA_API_KEY
+
+  if (!apiKey) {
+    throw new Error("UMBRELA_API_KEY não configurado")
+  }
+
+  console.log(`[Umbrela] Consultando: ${umbrelaUrl}`)
+
+  const response = await fetch(umbrelaUrl, {
+    method: "GET",
+    headers: {
+      "x-api-key": apiKey,
+      "User-Agent": "UMBRELLAB2B/1.0"
+    }
+  })
+
+  if (!response.ok) {
+    console.error(`[Umbrela] Erro na API: ${response.status}`)
+    throw new Error(`Erro na API Umbrela: ${response.status}`)
+  }
+
+  const result = await response.json()
+  const transactionData = result.data
+  console.log(`[Umbrela] Status atual: ${transactionData.status}`)
+  
+  return transactionData
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { transactionId } = await request.json()
@@ -99,6 +130,8 @@ export async function POST(request: NextRequest) {
     try {
       if (gateway === 'ghostpay') {
         transactionData = await checkStatusGhostPay(transactionId)
+      } else if (gateway === 'umbrela') {
+        transactionData = await checkStatusUmbrela(transactionId)
       } else {
         transactionData = await checkStatusBlackCat(transactionId)
       }
@@ -112,8 +145,8 @@ export async function POST(request: NextRequest) {
     }
 
     const currentStatus = transactionData.status
-    const isNowPaid = currentStatus === 'paid'
-    const isWaitingPayment = currentStatus === 'waiting_payment'
+    const isNowPaid = currentStatus === 'paid' || currentStatus === 'PAID' // Umbrela usa PAID (maiúsculo)
+    const isWaitingPayment = currentStatus === 'waiting_payment' || currentStatus === 'WAITING_PAYMENT'
 
     // Se status é paid, sempre processar e enviar para UTMify
     if (isNowPaid) {

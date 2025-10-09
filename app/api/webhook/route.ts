@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
     const transaction = body.data
     const transactionId = transaction.id.toString()
     const status = transaction.status
-    const isPaid = status === 'paid' || status === 'approved'
-    const isWaitingPayment = status === 'waiting_payment'
+    const isPaid = status === 'paid' || status === 'approved' || status === 'PAID' // Umbrela usa PAID
+    const isWaitingPayment = status === 'waiting_payment' || status === 'WAITING_PAYMENT'
 
     console.log("🚨🚨🚨 [WEBHOOK DEBUG] Transaction details:", {
       id: transactionId,
