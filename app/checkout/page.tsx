@@ -323,8 +323,10 @@ export default function CheckoutPage() {
         setTimeLeft(15 * 60)
         setTimerActive(true)
         
-        // Enviar para UTMify com status pending
-        await sendToUtmify('pending', data)
+        // Enviar para UTMify com status pending (não-bloqueante)
+        sendToUtmify('pending', data).catch(err => {
+          console.error('❌ [UTMify] Falha crítica ao enviar PENDING:', err)
+        })
         
       } else {
         const errorData = await response.json().catch(() => ({}))
@@ -463,11 +465,15 @@ export default function CheckoutPage() {
                 }
               }, intervalTime)
               
-              // Enviar para UTMify com status PAID
-              await sendToUtmifyPaid(pixData.transactionId)
+              // Enviar para UTMify com status PAID (não-bloqueante)
+              sendToUtmifyPaid(pixData.transactionId).catch(err => {
+                console.error('❌ [UTMify] Falha crítica ao enviar PAID:', err)
+              })
               
-              // Enviar conversão para Adspect
-              await sendToAdspect(pixData.transactionId, totalValue)
+              // Enviar conversão para Adspect (não-bloqueante)
+              sendToAdspect(pixData.transactionId, totalValue).catch(err => {
+                console.error('❌ [Adspect] Falha ao enviar conversão:', err)
+              })
             }
           }
         } catch (error) {
@@ -521,6 +527,8 @@ export default function CheckoutPage() {
   // Função para enviar dados para UTMify (PENDING)
   const sendToUtmify = async (status: 'pending', transactionData: any) => {
     try {
+      console.log('🔄 [UTMify] Iniciando envio - Status: PENDING')
+      
       // Capturar IP real
       const clientIp = await getClientIP()
       
@@ -581,6 +589,13 @@ export default function CheckoutPage() {
         isTest: process.env.NEXT_PUBLIC_UTMIFY_TEST_MODE === 'true'
       }
 
+      console.log('📤 [UTMify] Enviando dados PENDING:', {
+        orderId: utmifyData.orderId,
+        status: utmifyData.status,
+        valor: totalPriceInCents,
+        hasUTMs: !!utmifyData.trackingParameters.utm_source
+      })
+
       const response = await fetch('/api/utmify-track', {
         method: 'POST',
         headers: { 
@@ -589,17 +604,23 @@ export default function CheckoutPage() {
         body: JSON.stringify(utmifyData)
       })
       
-      if (!response.ok) {
-        // Erro ao enviar PENDING
+      if (response.ok) {
+        const result = await response.json()
+        console.log('✅ [UTMify] PENDING enviado com sucesso:', result)
+      } else {
+        const errorText = await response.text()
+        console.error('❌ [UTMify] Erro ao enviar PENDING:', response.status, errorText)
       }
     } catch (error) {
-      // Erro de conexão
+      console.error('❌ [UTMify] Erro de conexão PENDING:', error)
     }
   }
 
   // Função para enviar dados para UTMify (PAID)
   const sendToUtmifyPaid = async (transactionId: string) => {
     try {
+      console.log('🔄 [UTMify] Iniciando envio - Status: PAID')
+      
       // Capturar IP real
       const clientIp = await getClientIP()
       
@@ -660,6 +681,13 @@ export default function CheckoutPage() {
         isTest: process.env.NEXT_PUBLIC_UTMIFY_TEST_MODE === 'true'
       }
 
+      console.log('📤 [UTMify] Enviando dados PAID:', {
+        orderId: utmifyData.orderId,
+        status: utmifyData.status,
+        valor: totalPriceInCents,
+        hasUTMs: !!utmifyData.trackingParameters.utm_source
+      })
+
       const response = await fetch('/api/utmify-track', {
         method: 'POST',
         headers: { 
@@ -668,11 +696,15 @@ export default function CheckoutPage() {
         body: JSON.stringify(utmifyData)
       })
       
-      if (!response.ok) {
-        // Erro ao enviar PAID
+      if (response.ok) {
+        const result = await response.json()
+        console.log('✅ [UTMify] PAID enviado com sucesso:', result)
+      } else {
+        const errorText = await response.text()
+        console.error('❌ [UTMify] Erro ao enviar PAID:', response.status, errorText)
       }
     } catch (error) {
-      // Erro de conexão
+      console.error('❌ [UTMify] Erro de conexão PAID:', error)
     }
   }
 

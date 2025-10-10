@@ -286,7 +286,7 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
   // Preparar metadata com dados do usuário para verificação
   const customerCPF = body.customer.document.number || body.customer.document
   const customerEmail = body.customer.email || generateFakeEmail(body.customer.name)
-  const metadata = JSON.stringify({
+  const metadataObject = {
     usuario: {
       nome: body.customer.name,
       cpf: customerCPF,
@@ -297,7 +297,11 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
       valor_centavos: body.amount,
       valor_reais: (body.amount / 100).toFixed(2)
     }
-  })
+  }
+  
+  console.log("📋 [Umbrela] METADATA ENVIADO:", JSON.stringify(metadataObject, null, 2))
+  
+  const metadata = JSON.stringify(metadataObject)
 
   const umbrelaPayload = {
     amount: body.amount,
