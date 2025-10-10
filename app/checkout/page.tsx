@@ -317,7 +317,15 @@ export default function CheckoutPage() {
         setQrCodeImage(qrCodeImageData)
         
         // Disparar conversão Google Ads: QR Code gerado (Iniciar Checkout)
-        trackCheckoutInitiated()
+        if (process.env.NEXT_PUBLIC_ADS_INDIVIDUAL === 'true') {
+          // Usar função individual injetada no client-side
+          if (typeof window !== 'undefined' && (window as any).gtag_report_conversion_checkout) {
+            (window as any).gtag_report_conversion_checkout()
+          }
+        } else {
+          // Usar helper lib/google-ads.ts
+          trackCheckoutInitiated()
+        }
         
         // Iniciar timer de 15 minutos
         setTimeLeft(15 * 60)
@@ -444,7 +452,15 @@ export default function CheckoutPage() {
               const totalValue = getFinalPrice() + getPromoTotal()
               
               // Disparar conversão Google Ads: Pagamento confirmado (Compra)
-              trackPurchase(pixData.transactionId, totalValue)
+              if (process.env.NEXT_PUBLIC_ADS_INDIVIDUAL === 'true') {
+                // Usar função individual injetada no client-side
+                if (typeof window !== 'undefined' && (window as any).gtag_report_conversion_purchase) {
+                  (window as any).gtag_report_conversion_purchase(pixData.transactionId, totalValue)
+                }
+              } else {
+                // Usar helper lib/google-ads.ts
+                trackPurchase(pixData.transactionId, totalValue)
+              }
               
               // Mostrar mensagem de sucesso
               showToastMessage(`🎉 Pagamento confirmado! Seus ${config.coinName.toLowerCase()} serão creditados em breve.`, 'success')

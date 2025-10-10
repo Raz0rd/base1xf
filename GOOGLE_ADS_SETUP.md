@@ -17,7 +17,12 @@ O Google Ads Conversion Tracking foi totalmente integrado ao projeto, rastreando
 NEXT_PUBLIC_GOOGLE_ADS_ENABLED=true
 NEXT_PUBLIC_GOOGLE_ADS_ID=AW-17554136774
 
-# IDs de Conversão (Labels)
+# Modo de Conversão
+# false = Usa helper lib/google-ads.ts com labels configuráveis
+# true = Injeta funções gtag_report_conversion diretamente no client-side
+NEXT_PUBLIC_ADS_INDIVIDUAL=true
+
+# IDs de Conversão (Labels) - Somente se ADS_INDIVIDUAL=false
 NEXT_PUBLIC_GTAG_CONVERSION_INITCHECKOUT=8pfZCPegsKobEMa9u7JB
 NEXT_PUBLIC_GTAG_CONVERSION_COMPRA=S9KKCL7Qo6obEMa9u7JB
 ```
@@ -33,6 +38,61 @@ yarn dev
 ### **3. Pronto! 🎉**
 
 O tracking já está funcionando automaticamente.
+
+---
+
+## 🔀 Dois Modos de Conversão
+
+### **Modo 1: ADS_INDIVIDUAL=true (Recomendado pelo Google)**
+✅ Injeta funções `gtag_report_conversion` diretamente no client-side  
+✅ Scripts visíveis no source code (View Page Source)  
+✅ Formato original do Google Ads  
+✅ Melhor compatibilidade com ferramentas de verificação
+
+**Scripts injetados:**
+```html
+<!-- Tag base carregada em todas as páginas -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17554136774"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17554136774');
+</script>
+
+<!-- Funções de conversão disponíveis globalmente -->
+<script>
+window.gtag_report_conversion_checkout = function() {
+  gtag('event', 'conversion', {
+    'send_to': 'AW-17554136774/8pfZCPegsKobEMa9u7JB'
+  });
+  return false;
+};
+
+window.gtag_report_conversion_purchase = function(transactionId, value) {
+  gtag('event', 'conversion', {
+    'send_to': 'AW-17554136774/S9KKCL7Qo6obEMa9u7JB',
+    'value': value,
+    'currency': 'BRL',
+    'transaction_id': transactionId
+  });
+  return false;
+};
+</script>
+```
+
+### **Modo 2: ADS_INDIVIDUAL=false (Helper Functions)**
+✅ Labels configuráveis via .env  
+✅ Código mais limpo e abstrato  
+✅ Fácil de gerenciar múltiplas conversões
+
+Usa funções TypeScript:
+```typescript
+import { trackCheckoutInitiated, trackPurchase } from '@/lib/google-ads'
+
+trackCheckoutInitiated()
+trackPurchase(transactionId, value)
+```
 
 ---
 
@@ -136,21 +196,44 @@ trackPurchase(transactionId, totalValue)
 
 ## 🔍 Verificação
 
-### **1. Verificar se Scripts Foram Carregados**
+### **1. Verificar Scripts no Source Code (ADS_INDIVIDUAL=true)**
 
-Abra o Console do Browser (F12) e procure por:
+1. Clique com botão direito na página → **View Page Source** (Ctrl+U)
+2. Procure por `googletagmanager.com/gtag/js`
+3. Procure por `gtag_report_conversion_checkout`
+4. Procure por `gtag_report_conversion_purchase`
+
+✅ Se aparecer, os scripts estão injetados corretamente!
+
+### **2. Verificar no Console do Browser**
+
+Abra o Console (F12) e digite:
+```javascript
+// Verificar se gtag está disponível
+typeof gtag
+
+// Verificar funções individuais (se ADS_INDIVIDUAL=true)
+typeof window.gtag_report_conversion_checkout
+typeof window.gtag_report_conversion_purchase
+```
+
+Deve retornar `"function"` para todos.
+
+### **3. Ver Logs de Conversão**
+
+Procure por:
 ```
 [Google Ads] 🎯 Disparando conversão: Iniciar Checkout
 [Google Ads] ✅ Conversão "Iniciar Checkout" enviada com sucesso
 ```
 
-### **2. Verificar no Google Tag Assistant**
+### **4. Verificar no Google Tag Assistant**
 
 1. Instale a extensão **Google Tag Assistant**
 2. Acesse sua página
 3. Veja os eventos sendo disparados em tempo real
 
-### **3. Verificar no Google Ads**
+### **5. Verificar no Google Ads**
 
 1. Acesse Google Ads → Ferramentas → Conversões
 2. Clique na conversão
@@ -214,8 +297,9 @@ NEXT_PUBLIC_GOOGLE_ADS_ENABLED=false
 |----------|-------------|--------------|-----------|
 | `NEXT_PUBLIC_GOOGLE_ADS_ENABLED` | Sim | - | Ativar/desativar tracking |
 | `NEXT_PUBLIC_GOOGLE_ADS_ID` | Não | `AW-17554136774` | ID da conta Google Ads |
-| `NEXT_PUBLIC_GTAG_CONVERSION_INITCHECKOUT` | Não | `8pfZCPegsKobEMa9u7JB` | Label de conversão: Iniciar Checkout |
-| `NEXT_PUBLIC_GTAG_CONVERSION_COMPRA` | Não | `S9KKCL7Qo6obEMa9u7JB` | Label de conversão: Compra |
+| `NEXT_PUBLIC_ADS_INDIVIDUAL` | Não | `false` | true = funções individuais / false = helper functions |
+| `NEXT_PUBLIC_GTAG_CONVERSION_INITCHECKOUT` | Não* | `8pfZCPegsKobEMa9u7JB` | Label de conversão: Iniciar Checkout (*somente se ADS_INDIVIDUAL=false) |
+| `NEXT_PUBLIC_GTAG_CONVERSION_COMPRA` | Não* | `S9KKCL7Qo6obEMa9u7JB` | Label de conversão: Compra (*somente se ADS_INDIVIDUAL=false) |
 
 ---
 

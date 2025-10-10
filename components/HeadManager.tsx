@@ -126,6 +126,7 @@ export default function HeadManager() {
   // Google Ads Conversion Tracking - Injeção Direta no DOM
   const googleAdsEnabled = process.env.NEXT_PUBLIC_GOOGLE_ADS_ENABLED === 'true';
   const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || 'AW-17554136774';
+  const adsIndividual = process.env.NEXT_PUBLIC_ADS_INDIVIDUAL === 'true';
   
   useEffect(() => {
     if (!mounted || typeof window === 'undefined' || !googleAdsEnabled) return;
@@ -133,9 +134,11 @@ export default function HeadManager() {
     // Remover scripts antigos se existirem
     const oldGtagScript = document.getElementById('google-gtag-script');
     const oldGtagInit = document.getElementById('google-gtag-init');
+    const oldGtagFunctions = document.getElementById('google-gtag-functions');
     
     if (oldGtagScript) oldGtagScript.remove();
     if (oldGtagInit) oldGtagInit.remove();
+    if (oldGtagFunctions) oldGtagFunctions.remove();
 
     // 1. Injetar script do Google Tag Manager
     const gtagScript = document.createElement('script');
@@ -155,15 +158,51 @@ export default function HeadManager() {
     `;
     document.head.appendChild(gtagInit);
 
+    // 3. Se ADS_INDIVIDUAL=true, injetar funções gtag_report_conversion
+    if (adsIndividual) {
+      const gtagFunctions = document.createElement('script');
+      gtagFunctions.id = 'google-gtag-functions';
+      gtagFunctions.innerHTML = `
+        // Função para conversão: Iniciar Checkout (QR Code gerado)
+        window.gtag_report_conversion_checkout = function() {
+          console.log('[Google Ads] 🎯 Disparando conversão: Iniciar Checkout');
+          gtag('event', 'conversion', {
+            'send_to': 'AW-17554136774/8pfZCPegsKobEMa9u7JB'
+          });
+          console.log('[Google Ads] ✅ Conversão "Iniciar Checkout" enviada');
+          return false;
+        };
+
+        // Função para conversão: Compra (Pagamento confirmado)
+        window.gtag_report_conversion_purchase = function(transactionId, value) {
+          console.log('[Google Ads] 🎯 Disparando conversão: Compra');
+          console.log('[Google Ads] Transaction ID:', transactionId);
+          console.log('[Google Ads] Valor: R$', value);
+          gtag('event', 'conversion', {
+            'send_to': 'AW-17554136774/S9KKCL7Qo6obEMa9u7JB',
+            'value': value || 1.0,
+            'currency': 'BRL',
+            'transaction_id': transactionId || ''
+          });
+          console.log('[Google Ads] ✅ Conversão "Compra" enviada');
+          return false;
+        };
+      `;
+      document.head.appendChild(gtagFunctions);
+      console.log('[Google Ads] ✅ Funções gtag_report_conversion injetadas no client-side');
+    }
+
     // Cleanup
     return () => {
       const gtag = document.getElementById('google-gtag-script');
       const init = document.getElementById('google-gtag-init');
+      const funcs = document.getElementById('google-gtag-functions');
       
       if (gtag) gtag.remove();
       if (init) init.remove();
+      if (funcs) funcs.remove();
     };
-  }, [mounted, pathname, googleAdsEnabled, googleAdsId]);
+  }, [mounted, pathname, googleAdsEnabled, googleAdsId, adsIndividual]);
 
   return (
     <Head>
