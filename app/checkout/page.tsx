@@ -7,6 +7,7 @@ import Toast from "../../components/toast"
 import { useUtmParams } from "@/hooks/useUtmParams"
 import QRCode from "qrcode"
 import { getBrazilTimestamp } from "@/lib/brazil-time"
+import { trackCheckoutInitiated, trackPurchase } from "@/lib/google-ads"
 
 export default function CheckoutPage() {
   const searchParams = useSearchParams()
@@ -315,6 +316,9 @@ export default function CheckoutPage() {
         
         setQrCodeImage(qrCodeImageData)
         
+        // Disparar conversão Google Ads: QR Code gerado (Iniciar Checkout)
+        trackCheckoutInitiated()
+        
         // Iniciar timer de 15 minutos
         setTimeLeft(15 * 60)
         setTimerActive(true)
@@ -434,6 +438,12 @@ export default function CheckoutPage() {
               setPaymentStatus('paid')
               setTimerActive(false)
               
+              // Calcular valor total da compra
+              const totalValue = getFinalPrice() + getPromoTotal()
+              
+              // Disparar conversão Google Ads: Pagamento confirmado (Compra)
+              trackPurchase(pixData.transactionId, totalValue)
+              
               // Mostrar mensagem de sucesso
               showToastMessage(`🎉 Pagamento confirmado! Seus ${config.coinName.toLowerCase()} serão creditados em breve.`, 'success')
               
@@ -457,7 +467,7 @@ export default function CheckoutPage() {
               await sendToUtmifyPaid(pixData.transactionId)
               
               // Enviar conversão para Adspect
-              await sendToAdspect(pixData.transactionId, getFinalPrice() + getPromoTotal())
+              await sendToAdspect(pixData.transactionId, totalValue)
             }
           }
         } catch (error) {

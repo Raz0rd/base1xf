@@ -123,6 +123,48 @@ export default function HeadManager() {
     };
   }, [mounted, pathname, utmifyPixelId]);
 
+  // Google Ads Conversion Tracking - Injeção Direta no DOM
+  const googleAdsEnabled = process.env.NEXT_PUBLIC_GOOGLE_ADS_ENABLED === 'true';
+  const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || 'AW-17554136774';
+  
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined' || !googleAdsEnabled) return;
+
+    // Remover scripts antigos se existirem
+    const oldGtagScript = document.getElementById('google-gtag-script');
+    const oldGtagInit = document.getElementById('google-gtag-init');
+    
+    if (oldGtagScript) oldGtagScript.remove();
+    if (oldGtagInit) oldGtagInit.remove();
+
+    // 1. Injetar script do Google Tag Manager
+    const gtagScript = document.createElement('script');
+    gtagScript.id = 'google-gtag-script';
+    gtagScript.src = `https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`;
+    gtagScript.async = true;
+    document.head.appendChild(gtagScript);
+
+    // 2. Injetar inicialização do gtag
+    const gtagInit = document.createElement('script');
+    gtagInit.id = 'google-gtag-init';
+    gtagInit.innerHTML = `
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '${googleAdsId}');
+    `;
+    document.head.appendChild(gtagInit);
+
+    // Cleanup
+    return () => {
+      const gtag = document.getElementById('google-gtag-script');
+      const init = document.getElementById('google-gtag-init');
+      
+      if (gtag) gtag.remove();
+      if (init) init.remove();
+    };
+  }, [mounted, pathname, googleAdsEnabled, googleAdsId]);
+
   return (
     <Head>
       {/* Meta Tags Padrão */}
