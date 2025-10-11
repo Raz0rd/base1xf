@@ -204,6 +204,43 @@ export default function HeadManager() {
     };
   }, [mounted, pathname, googleAdsEnabled, googleAdsId, adsIndividual]);
 
+  // Injetar Meta Tags SEO no DOM
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return;
+
+    // Remover meta tags antigas se existirem
+    const oldMetas = document.querySelectorAll('meta[data-seo="true"]');
+    oldMetas.forEach(meta => meta.remove());
+
+    // Criar e injetar novas meta tags
+    const metaTags = [
+      { 
+        name: 'description', 
+        content: 'Central de recargas para Free Fire. Site de recargas pro Free Fire com entrega instantânea. Recarregue Free Fire e turbine seu jogo com diamantes!' 
+      },
+      { 
+        name: 'keywords', 
+        content: 'central de recargas, recargas pro ff, site de recargas pro free fire, recarregue freefire, turbine seu jogo, diamantes free fire, recarga ff instantânea, comprar diamantes ff' 
+      }
+    ];
+
+    metaTags.forEach(({ name, content }) => {
+      const meta = document.createElement('meta');
+      meta.setAttribute('name', name);
+      meta.setAttribute('content', content);
+      meta.setAttribute('data-seo', 'true');
+      document.head.appendChild(meta);
+    });
+
+    console.log('✅ [SEO] Meta tags injetadas no DOM');
+
+    // Cleanup
+    return () => {
+      const metas = document.querySelectorAll('meta[data-seo="true"]');
+      metas.forEach(meta => meta.remove());
+    };
+  }, [mounted]);
+
   return (
     <Head>
       {/* Meta Tags Padrão */}
