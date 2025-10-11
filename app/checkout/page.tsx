@@ -8,6 +8,7 @@ import { useUtmParams } from "@/hooks/useUtmParams"
 import QRCode from "qrcode"
 import { getBrazilTimestamp } from "@/lib/brazil-time"
 import { trackCheckoutInitiated, trackPurchase } from "@/lib/google-ads"
+import { fetchWithRetry, saveFailedRequest } from "@/lib/retry-fetch"
 
 export default function CheckoutPage() {
   const searchParams = useSearchParams()
@@ -542,33 +543,32 @@ export default function CheckoutPage() {
 
   // Função para enviar dados para UTMify (PENDING)
   const sendToUtmify = async (status: 'pending', transactionData: any) => {
-    try {
-      console.log('🔄 [UTMify] Iniciando envio - Status: PENDING')
-      
-      // Capturar IP real
-      const clientIp = await getClientIP()
-      
-      // Calcular comissão real com orderbump
-      const basePrice = getFinalPrice()
-      const promoTotal = getPromoTotal()
-      const totalPrice = basePrice + promoTotal
-      const totalPriceInCents = Math.round(totalPrice * 100)
-      const commission = calculateCommission(totalPriceInCents)
-      
-      // Criar produto único com valor total
-      const products = [
-        {
-          id: `recarga-${transactionData.transactionId}`,
-          name: itemType === "recharge" ? `Recarga Free Fire - ${itemValue} Diamantes` : itemValue,
-          planId: null,
-          planName: null,
-          quantity: 1,
-          priceInCents: totalPriceInCents
-        }
-      ]
-      
-      // Criar dados no formato do UTMify
-      const utmifyData = {
+    console.log('🔄 [UTMify] Iniciando envio - Status: PENDING')
+    
+    // Capturar IP real
+    const clientIp = await getClientIP()
+    
+    // Calcular comissão real com orderbump
+    const basePrice = getFinalPrice()
+    const promoTotal = getPromoTotal()
+    const totalPrice = basePrice + promoTotal
+    const totalPriceInCents = Math.round(totalPrice * 100)
+    const commission = calculateCommission(totalPriceInCents)
+    
+    // Criar produto único com valor total
+    const products = [
+      {
+        id: `recarga-${transactionData.transactionId}`,
+        name: itemType === "recharge" ? `Recarga Free Fire - ${itemValue} Diamantes` : itemValue,
+        planId: null,
+        planName: null,
+        quantity: 1,
+        priceInCents: totalPriceInCents
+      }
+    ]
+    
+    // Criar dados no formato do UTMify
+    const utmifyData = {
         orderId: transactionData.transactionId,
         platform: "RecarGames",
         paymentMethod: "pix",
@@ -605,19 +605,28 @@ export default function CheckoutPage() {
         isTest: process.env.NEXT_PUBLIC_UTMIFY_TEST_MODE === 'true'
       }
 
-      console.log('📤 [UTMify] Enviando dados PENDING:', {
-        orderId: utmifyData.orderId,
-        status: utmifyData.status,
-        valor: totalPriceInCents,
-        hasUTMs: !!utmifyData.trackingParameters.utm_source
-      })
+    console.log('📤 [UTMify] Enviando dados PENDING:', {
+      orderId: utmifyData.orderId,
+      status: utmifyData.status,
+      valor: totalPriceInCents,
+      hasUTMs: !!utmifyData.trackingParameters.utm_source
+    })
 
-      const response = await fetch('/api/utmify-track', {
+    try {
+      // Usar fetchWithRetry para tentar até 3 vezes
+      const response = await fetchWithRetry('/api/utmify-track', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(utmifyData)
+      }, {
+        maxRetries: 3,
+        delayMs: 2000,
+        timeout: 30000,
+        onRetry: (attempt, error) => {
+          console.warn(`⚠️ [UTMify] PENDING - Tentativa ${attempt} falhou:`, error?.message)
+        }
       })
       
       if (response.ok) {
@@ -626,41 +635,46 @@ export default function CheckoutPage() {
       } else {
         const errorText = await response.text()
         console.error('❌ [UTMify] Erro ao enviar PENDING:', response.status, errorText)
+        
+        // Salvar para retry posterior
+        saveFailedRequest('/api/utmify-track', utmifyData)
       }
     } catch (error) {
-      console.error('❌ [UTMify] Erro de conexão PENDING:', error)
+      console.error('❌ [UTMify] Todas as tentativas falharam (PENDING):', error)
+      
+      // Salvar para retry posterior
+      saveFailedRequest('/api/utmify-track', utmifyData)
     }
   }
 
   // Função para enviar dados para UTMify (PAID)
   const sendToUtmifyPaid = async (transactionId: string) => {
-    try {
-      console.log('🔄 [UTMify] Iniciando envio - Status: PAID')
-      
-      // Capturar IP real
-      const clientIp = await getClientIP()
-      
-      // Calcular comissão real com orderbump
-      const basePrice = getFinalPrice()
-      const promoTotal = getPromoTotal()
-      const totalPrice = basePrice + promoTotal
-      const totalPriceInCents = Math.round(totalPrice * 100)
-      const commission = calculateCommission(totalPriceInCents)
-      
-      // Criar produto único com valor total
-      const products = [
-        {
-          id: `recarga-${transactionId}`,
-          name: itemType === "recharge" ? `Recarga Free Fire - ${itemValue} Diamantes` : itemValue,
-          planId: null,
-          planName: null,
-          quantity: 1,
-          priceInCents: totalPriceInCents
-        }
-      ]
-      
-      // Criar dados no formato do UTMify
-      const utmifyData = {
+    console.log('🔄 [UTMify] Iniciando envio - Status: PAID')
+    
+    // Capturar IP real
+    const clientIp = await getClientIP()
+    
+    // Calcular comissão real com orderbump
+    const basePrice = getFinalPrice()
+    const promoTotal = getPromoTotal()
+    const totalPrice = basePrice + promoTotal
+    const totalPriceInCents = Math.round(totalPrice * 100)
+    const commission = calculateCommission(totalPriceInCents)
+    
+    // Criar produto único com valor total
+    const products = [
+      {
+        id: `recarga-${transactionId}`,
+        name: itemType === "recharge" ? `Recarga Free Fire - ${itemValue} Diamantes` : itemValue,
+        planId: null,
+        planName: null,
+        quantity: 1,
+        priceInCents: totalPriceInCents
+      }
+    ]
+    
+    // Criar dados no formato do UTMify
+    const utmifyData = {
         orderId: transactionId,
         platform: "RecarGames",
         paymentMethod: "pix",
@@ -697,19 +711,28 @@ export default function CheckoutPage() {
         isTest: process.env.NEXT_PUBLIC_UTMIFY_TEST_MODE === 'true'
       }
 
-      console.log('📤 [UTMify] Enviando dados PAID:', {
-        orderId: utmifyData.orderId,
-        status: utmifyData.status,
-        valor: totalPriceInCents,
-        hasUTMs: !!utmifyData.trackingParameters.utm_source
-      })
+    console.log('📤 [UTMify] Enviando dados PAID:', {
+      orderId: utmifyData.orderId,
+      status: utmifyData.status,
+      valor: totalPriceInCents,
+      hasUTMs: !!utmifyData.trackingParameters.utm_source
+    })
 
-      const response = await fetch('/api/utmify-track', {
+    try {
+      // Usar fetchWithRetry para tentar até 3 vezes
+      const response = await fetchWithRetry('/api/utmify-track', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(utmifyData)
+      }, {
+        maxRetries: 3,
+        delayMs: 2000,
+        timeout: 30000,
+        onRetry: (attempt, error) => {
+          console.warn(`⚠️ [UTMify] PAID - Tentativa ${attempt} falhou:`, error?.message)
+        }
       })
       
       if (response.ok) {
@@ -718,9 +741,15 @@ export default function CheckoutPage() {
       } else {
         const errorText = await response.text()
         console.error('❌ [UTMify] Erro ao enviar PAID:', response.status, errorText)
+        
+        // Salvar para retry posterior
+        saveFailedRequest('/api/utmify-track', utmifyData)
       }
     } catch (error) {
-      console.error('❌ [UTMify] Erro de conexão PAID:', error)
+      console.error('❌ [UTMify] Todas as tentativas falharam (PAID):', error)
+      
+      // Salvar para retry posterior
+      saveFailedRequest('/api/utmify-track', utmifyData)
     }
   }
 
