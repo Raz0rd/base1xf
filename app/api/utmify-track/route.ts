@@ -9,22 +9,34 @@ export async function POST(request: NextRequest) {
     const utmifyToken = process.env.UTMIFY_API_TOKEN
     const whitepageUrl = process.env.UTMIFY_WHITEPAGE_URL
 
-    if (!utmifyEnabled || !utmifyToken || !whitepageUrl) {
+    if (!utmifyEnabled || !utmifyToken) {
       console.log('UTMify não configurado ou desabilitado')
       return NextResponse.json({ success: false, message: 'UTMify não configurado' })
     }
 
     console.log('[UTMify] Enviando lead para UTMify:', JSON.stringify(utmifyData, null, 2))
-    console.log('[UTMify] Referer (Whitepage):', whitepageUrl)
+    
+    if (whitepageUrl) {
+      console.log('[UTMify] Referer (Whitepage):', whitepageUrl)
+    } else {
+      console.log('[UTMify] ⚠️ Whitepage URL não configurada (opcional)')
+    }
+
+    // Preparar headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-api-token': utmifyToken
+    }
+    
+    // Adicionar Referer apenas se whitepageUrl existir
+    if (whitepageUrl) {
+      headers['Referer'] = whitepageUrl
+    }
 
     // Enviar para UTMify usando o mesmo endpoint do webhook
     const utmifyResponse = await fetch('https://api.utmify.com.br/api-credentials/orders', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-token': utmifyToken,
-        'Referer': whitepageUrl
-      },
+      headers: headers,
       body: JSON.stringify(utmifyData)
     })
 
