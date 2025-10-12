@@ -8,8 +8,11 @@ import { Shield } from "lucide-react"
 import { useRouter } from 'next/navigation';
 import { useUtmParams } from '@/hooks/useUtmParams';
 import HeadManager from '@/components/HeadManager';
+import LoginModal from '@/components/login-modal';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function HomePage() {
+  const { isAuthenticated, userData: authUserData, loading: authLoading, login } = useAuth();
   const [mounted, setMounted] = useState(false)
   const [showLeadMessage, setShowLeadMessage] = useState(false)
   const [leadMessageType, setLeadMessageType] = useState<"default" | "nao_quer_agora" | "nao_tem_interesse">("default")
@@ -2269,6 +2272,11 @@ export default function HomePage() {
           </div>
         )}
 
+      {/* Modal de Login Obrigatório */}
+      <LoginModal 
+        isOpen={!authLoading && !isAuthenticated} 
+        onSuccess={login}
+      />
     </>
   )
 }
