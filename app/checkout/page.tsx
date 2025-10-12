@@ -1059,8 +1059,8 @@ export default function CheckoutPage() {
 
                       {/* Informações da empresa */}
                       <div className="text-center text-gray-500 text-sm mb-4">
-                        VENDAS ONLINE STORE LTDA<br/>
-                        CNPJ: 27.945.891/0001-05
+                        PAY PAGAMENTOS<br/>
+                        CNPJ: 62.745.712/0001-97
                       </div>
 
                       {/* Código PIX */}
@@ -1124,7 +1124,7 @@ export default function CheckoutPage() {
                           <li>Utilize as informações acima para realizar o pagamento.</li>
                           <li>Revise as informações e pronto!</li>
                         </ol>
-                        <p>Seu pedido está sendo processado pelo nosso parceiro VENDAS ONLINE STORE LTDA.</p>
+                        <p>Seu pedido está sendo processado pelo nosso parceiro PAY PAGAMENTOS.</p>
                         <p>Você receberá seus {config.coinName.toLowerCase()} após recebermos a confirmação do pagamento. Isso ocorre geralmente em alguns minutos após a realização do pagamento na sua instituição financeira.</p>
                         <p>Em caso de dúvidas entre em contato com o suporte.</p>
                       </div>
