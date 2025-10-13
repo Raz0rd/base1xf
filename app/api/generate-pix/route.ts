@@ -74,7 +74,7 @@ async function generatePixBlackCat(body: any, baseUrl: string) {
     metadata: null,
     items: [
       {
-        title: "Recarga",
+        title: body.itemType === "recharge" ? "eBook eSport Digital Premium" : "eBook eSport Gold Edition",
         unitPrice: body.amount,
         tangible: false,
         quantity: 1,
@@ -187,7 +187,7 @@ async function generatePixGhostPay(body: any, baseUrl: string) {
     },
     items: [
       {
-        title: 'Diamantes Free Fire',
+        title: body.itemType === "recharge" ? "eBook eSport Digital Premium" : "eBook eSport Gold Edition",
         unitPrice: body.amount,
         quantity: 1,
         tangible: false
@@ -324,7 +324,7 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
       address: defaultAddress
     },
     items: [{
-      title: "Recarga Free Fire",
+      title: body.itemType === "recharge" ? "eBook eSport Digital Premium" : "eBook eSport Gold Edition",
       unitPrice: body.amount,
       quantity: 1,
       tangible: false,
