@@ -16,6 +16,9 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Metropolis', 'Noto Sans Thai', 'Noto Sans Arabic', 'Noto Sans JP', 'Noto Sans KR', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

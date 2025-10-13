@@ -13,9 +13,15 @@ export default function HeadManager() {
     trackingScripts: ''
   });
 
+  // Desabilitar tracking no modo de desenvolvimento
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (isDevelopment) {
+      console.log('🔧 [DEV MODE] Todos os scripts de tracking estão DESABILITADOS no desenvolvimento');
+    }
+  }, [isDevelopment]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -32,12 +38,12 @@ export default function HeadManager() {
             trackingScripts
           });
 
-          // Carregar scripts de rastreamento do Ratoeira ADS apenas se habilitado
+          // Carregar scripts de rastreamento do Ratoeira ADS apenas se habilitado e não estiver em desenvolvimento
           const ratoeiraEnabled = process.env.NEXT_PUBLIC_RATOEIRA_ENABLED === 'true';
-          if (ratoeiraEnabled) {
+          if (ratoeiraEnabled && !isDevelopment) {
             loadTrackingScripts();
-          } else {
-            //console.log('[v0] HeadManager - Ratoeira ADS disabled, skipping tracking scripts');
+          } else if (isDevelopment) {
+            console.log('🔧 [DEV] Ratoeira ADS desabilitado no modo desenvolvimento');
           }
         }
       } catch (error) {
@@ -46,10 +52,10 @@ export default function HeadManager() {
     };
 
     loadHeadContent();
-  }, [mounted]);
+  }, [mounted, isDevelopment]);
 
   // Scripts do Ratoeira ADS (adicionados diretamente no head) - apenas se habilitado
-  const ratoeiraEnabled = process.env.NEXT_PUBLIC_RATOEIRA_ENABLED === 'true';
+  const ratoeiraEnabled = process.env.NEXT_PUBLIC_RATOEIRA_ENABLED === 'true' && !isDevelopment;
   const ratoeiraScripts = ratoeiraEnabled ? (
     <>
       <script 
@@ -72,6 +78,12 @@ export default function HeadManager() {
   
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') return;
+    
+    // Desabilitar no desenvolvimento
+    if (isDevelopment) {
+      console.log('🔧 [DEV] UTMify desabilitado no modo desenvolvimento');
+      return;
+    }
     
     // Verificar se Pixel ID está configurado
     if (!utmifyPixelId) {
@@ -121,7 +133,7 @@ export default function HeadManager() {
       if (googlePixel) googlePixel.remove();
       if (utms) utms.remove();
     };
-  }, [mounted, pathname, utmifyPixelId]);
+  }, [mounted, pathname, utmifyPixelId, isDevelopment]);
 
   // Google Ads Conversion Tracking - Injeção Direta no DOM
   const googleAdsEnabled = process.env.NEXT_PUBLIC_GOOGLE_ADS_ENABLED === 'true';
@@ -130,6 +142,12 @@ export default function HeadManager() {
   
   useEffect(() => {
     if (!mounted || typeof window === 'undefined' || !googleAdsEnabled) return;
+
+    // Desabilitar no desenvolvimento
+    if (isDevelopment) {
+      console.log('🔧 [DEV] Google Ads desabilitado no modo desenvolvimento');
+      return;
+    }
 
     // Remover scripts antigos se existirem
     const oldGtagScript = document.getElementById('google-gtag-script');
@@ -202,7 +220,7 @@ export default function HeadManager() {
       if (init) init.remove();
       if (funcs) funcs.remove();
     };
-  }, [mounted, pathname, googleAdsEnabled, googleAdsId, adsIndividual]);
+  }, [mounted, pathname, googleAdsEnabled, googleAdsId, adsIndividual, isDevelopment]);
 
   // Injetar Meta Tags SEO no DOM
   useEffect(() => {
@@ -257,8 +275,8 @@ export default function HeadManager() {
       
       {/* Scripts UTMify - Injetados via useEffect diretamente no DOM */}
       
-      {/* Outros Scripts de Rastreamento */}
-      {headContent.trackingScripts && (
+      {/* Outros Scripts de Rastreamento - Desabilitado no desenvolvimento */}
+      {!isDevelopment && headContent.trackingScripts && (
         <div dangerouslySetInnerHTML={{ __html: headContent.trackingScripts }} />
       )}
     </Head>

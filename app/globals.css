@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fonte Metropolis */
+@font-face {
+  font-family: 'Metropolis';
+  src: url('/fonts/Metropolis-Regular-e920e6b0.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Metropolis';
+  src: url('/fonts/Metropolis-Medium-f3a73873.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Metropolis';
+  src: url('/fonts/Metropolis-Bold-9a712a2c.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -99,22 +124,43 @@
   /* Tamanho do texto dos valores de moedas */
   .coin-value-text {
     /* Mobile */
-    font-size: 0.75rem; /* 12px - aumentado */
+    font-size: 0.875rem; /* 14px - aumentado */
+    font-weight: 500;
   }
   
   /* Tablet */
   @media (min-width: 640px) {
     .coin-value-text {
-      font-size: 0.875rem; /* 14px - aumentado */
+      font-size: 1rem; /* 16px - aumentado */
     }
   }
   
   /* Desktop */
   @media (min-width: 768px) {
     .coin-value-text {
-      font-size: 1.25rem; /* 20px - aumentado */
+      font-size: 1.375rem; /* 22px - aumentado */
     }
   }
   
   /* Adicione aqui outras customizações que você precisa */
+  
+  /* Border radius customizado para o banner */
+  .rounded-t-2xl {
+    border-top-left-radius: 0.6rem;
+    border-top-right-radius: 0.6rem;
+  }
+  
+  /* Fix para o carousel */
+  .py-6 {
+    padding-top: 2.6rem !important;
+    padding-bottom: 1.8rem !important;
+  }
+  
+  /* Header desktop padding */
+  @media (min-width: 640px) {
+    .sm\:px-4 {
+      padding-left: 9rem !important;
+      padding-right: 11rem !important;
+    }
+  }
 }

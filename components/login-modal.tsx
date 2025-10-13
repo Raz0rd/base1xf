@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, User, Mail, Phone, Shield, CheckCircle2 } from 'lucide-react';
 
 interface LoginModalProps {
@@ -9,6 +10,7 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onSuccess }: LoginModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<'login' | 'terms'>('login');
   const [formData, setFormData] = useState({
     name: '',
@@ -19,7 +21,14 @@ export default function LoginModal({ isOpen, onSuccess }: LoginModalProps) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+    console.log('[LoginModal] 🚀 Modal montado! isOpen:', isOpen);
+  }, [isOpen]);
+
+  console.log('[LoginModal] Render - isOpen:', isOpen, 'mounted:', mounted);
+
+  if (!mounted) return null;
 
   const validateLogin = () => {
     const newErrors: Record<string, string> = {};
@@ -89,14 +98,54 @@ export default function LoginModal({ isOpen, onSuccess }: LoginModalProps) {
     return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
   };
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+  console.log('[LoginModal] 🎨 Renderizando modal via Portal!');
+
+  const modalContent = (
+    <div 
+      className="fixed inset-0 flex items-center justify-center" 
+      style={{ 
+        zIndex: 99999,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex'
+      }}
+    >
       {/* Backdrop com blur */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+      <div 
+        className="absolute inset-0" 
+        style={{ 
+          zIndex: 99998,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)'
+        }} 
+      />
       
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md mx-4">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div 
+        className="relative w-full max-w-md mx-4" 
+        style={{ 
+          zIndex: 99999,
+          position: 'relative',
+          margin: '0 1rem'
+        }}
+      >
+        <div 
+          className="bg-white rounded-2xl shadow-2xl overflow-hidden"
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '1rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}
+        >
           
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
@@ -293,4 +342,6 @@ export default function LoginModal({ isOpen, onSuccess }: LoginModalProps) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
