@@ -259,7 +259,8 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
   
   if (!apiKey) {
     console.error("❌ [Umbrela] UMBRELA_API_KEY não configurado")
-    throw new Error("Configuração de API não encontrada")
+    console.error("❌ [Umbrela] Variáveis disponíveis:", Object.keys(process.env).filter(key => key.includes('UMBRELA')))
+    throw new Error("UMBRELA_API_KEY não configurado no servidor")
   }
 
   console.log("📤 [Umbrela] REQUEST BODY:", JSON.stringify(body, null, 2))
@@ -396,15 +397,30 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
 export async function POST(request: NextRequest) {
   try {
     // Escolher gateway baseado na variável de ambiente
-    const gateway = process.env.PAYMENT_GATEWAY || 'blackcat' // 'blackcat', 'ghostpay' ou 'umbrela'
+    const gateway = process.env.PAYMENT_GATEWAY || 'umbrela' // Default: umbrela
     console.log("\n💳 [GATEWAY] Gateway selecionado:", gateway.toUpperCase())
+    
+    // Debug de variáveis de ambiente
+    console.log("🔑 [ENV] PAYMENT_GATEWAY:", process.env.PAYMENT_GATEWAY)
+    console.log("🔑 [ENV] UMBRELA_API_KEY:", process.env.UMBRELA_API_KEY ? "✓ Presente" : "❌ Ausente")
+    console.log("🔑 [ENV] NODE_ENV:", process.env.NODE_ENV)
     
     const body = await request.json()
     
     // Obter URL atual dinamicamente
     const host = request.headers.get('host')
-    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const protocol = request.headers.get('x-forwarded-proto') || (process.env.NODE_ENV === 'production' ? 'https' : 'http')
     const baseUrl = `${protocol}://${host}`
+    
+    // Debug detalhado da URL
+    console.log("🌐 [URL DEBUG] Headers recebidos:", {
+      host: request.headers.get('host'),
+      'x-forwarded-proto': request.headers.get('x-forwarded-proto'),
+      'x-real-ip': request.headers.get('x-real-ip'),
+      'cf-connecting-ip': request.headers.get('cf-connecting-ip'),
+      protocol,
+      baseUrl
+    })
     
     let result
     

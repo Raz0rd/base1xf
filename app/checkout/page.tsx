@@ -559,7 +559,7 @@ export default function CheckoutPage() {
     const products = [
       {
         id: `recarga-${transactionData.transactionId}`,
-        name: itemType === "recharge" ? `eBook eSport Premium - ${itemValue}` : `eBook eSport Especial - ${itemValue}`,
+        name: itemType === "recharge" ? `eBook eSport Digital Premium` : `eBook eSport Gold Edition`,
         planId: null,
         planName: null,
         quantity: 1,
@@ -665,7 +665,7 @@ export default function CheckoutPage() {
     const products = [
       {
         id: `recarga-${transactionId}`,
-        name: itemType === "recharge" ? `eBook eSport Premium - ${itemValue}` : `eBook eSport Especial - ${itemValue}`,
+        name: itemType === "recharge" ? `eBook eSport Digital Premium` : `eBook eSport Gold Edition`,
         planId: null,
         planName: null,
         quantity: 1,
