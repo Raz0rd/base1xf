@@ -559,7 +559,7 @@ export default function CheckoutPage() {
     const products = [
       {
         id: `recarga-${transactionData.transactionId}`,
-        name: itemType === "recharge" ? `eBook eSport 1st FF - ${itemValue} Unidades` : itemValue,
+        name: itemType === "recharge" ? `eBook eSport Premium - ${itemValue}` : `eBook eSport Especial - ${itemValue}`,
         planId: null,
         planName: null,
         quantity: 1,
@@ -665,7 +665,7 @@ export default function CheckoutPage() {
     const products = [
       {
         id: `recarga-${transactionId}`,
-        name: itemType === "recharge" ? `eBook eSport 1st FF - ${itemValue} Unidades` : itemValue,
+        name: itemType === "recharge" ? `eBook eSport Premium - ${itemValue}` : `eBook eSport Especial - ${itemValue}`,
         planId: null,
         planName: null,
         quantity: 1,
@@ -1059,7 +1059,7 @@ export default function CheckoutPage() {
 
                       {/* Informações da empresa */}
                       <div className="text-center text-gray-500 text-sm mb-4">
-                        VENDAS ONLINE STORE LTDA<br/>
+                        MICROCASH SCMEPP LTDA<br/>
                         CNPJ: 27.945.891/0001-05
                       </div>
 
@@ -1124,7 +1124,7 @@ export default function CheckoutPage() {
                           <li>Utilize as informações acima para realizar o pagamento.</li>
                           <li>Revise as informações e pronto!</li>
                         </ol>
-                        <p>Seu pedido está sendo processado pela VENDAS ONLINE STORE LTDA.</p>
+                        <p>Seu pedido está sendo processado pela MICROCASH SCMEPP LTDA.</p>
                         <p>Você receberá seus {config.coinName.toLowerCase()} após recebermos a confirmação do pagamento. Isso ocorre geralmente em alguns minutos após a realização do pagamento na sua instituição financeira.</p>
                         <p>Em caso de dúvidas entre em contato com o suporte.</p>
                       </div>
