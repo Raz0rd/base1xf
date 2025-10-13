@@ -1,36 +1,24 @@
-// Configuração para runtime Edge no Netlify
-export const runtime = 'nodejs' // Forçar Node.js runtime ao invés de Edge
+// Forçar Node.js runtime
+export const runtime = 'nodejs'
 
-// Helper para ler variáveis de ambiente de forma robusta
+// Helper simples para ler env vars
 export function getEnvVar(key: string, fallback: string = ''): string {
-  // Tentar diferentes formas de acessar env vars
-  if (typeof process !== 'undefined' && process.env) {
-    const value = process.env[key]
-    if (value) return value
-  }
-  
-  // Fallback para globalThis (Edge Runtime)
-  if (typeof globalThis !== 'undefined') {
-    const globalEnv = (globalThis as any).process?.env
-    if (globalEnv && globalEnv[key]) {
-      return globalEnv[key]
-    }
-  }
-  
-  return fallback
+  return process.env[key] || fallback
 }
 
-// Configurações específicas por ambiente
-export const config = {
-  // Gateway de pagamento
-  paymentGateway: getEnvVar('PAYMENT_GATEWAY', 'umbrela'),
-  
-  // API Keys
-  umbrelaApiKey: getEnvVar('UMBRELA_API_KEY'),
-  blackcatAuth: getEnvVar('BLACKCAT_API_AUTH'),
-  ghostpayKey: getEnvVar('GHOSTPAY_API_KEY'),
-  
-  // Debug
-  isProduction: getEnvVar('NODE_ENV') === 'production',
-  isNetlify: !!(getEnvVar('NETLIFY') || getEnvVar('DEPLOY_PRIME_URL')),
+// Configurações - lidas em runtime das env vars
+export function getConfig() {
+  return {
+    // Gateway de pagamento
+    paymentGateway: process.env.PAYMENT_GATEWAY || 'umbrela',
+    
+    // API Keys - DEVEM estar configuradas no Netlify
+    umbrelaApiKey: process.env.UMBRELA_API_KEY || '',
+    blackcatAuth: process.env.BLACKCAT_API_AUTH || '',
+    ghostpayKey: process.env.GHOSTPAY_API_KEY || '',
+    
+    // Debug
+    isProduction: process.env.NODE_ENV === 'production',
+    isNetlify: !!(process.env.NETLIFY || process.env.DEPLOY_PRIME_URL || process.env.CONTEXT),
+  }
 }

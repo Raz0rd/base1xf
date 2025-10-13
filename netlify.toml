@@ -7,15 +7,21 @@
   NPM_CONFIG_FUND = "false"
   NPM_CONFIG_AUDIT = "false"
 
-# Configurações específicas para Next.js + Netlify
+# Plugin Next.js oficial para Netlify
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  # Forçar Node.js runtime para todas as functions
+  # Runtime Node.js para todas as functions
   node_bundler = "esbuild"
   
 [dev]
-  # Configuração para netlify dev
   framework = "next"
   targetPort = 3000
+  
+# Configurações de ambiente para garantir variáveis acessíveis
+[context.production.environment]
+  NODE_ENV = "production"
+  
+[context.deploy-preview.environment]
+  NODE_ENV = "development"

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { orderStorageService } from "@/lib/order-storage"
-import { config, getEnvVar } from "./config"
+import { getConfig, getEnvVar } from "./config"
 
 // Forçar Node.js runtime
 export const runtime = 'nodejs'
@@ -258,6 +258,7 @@ async function generatePixGhostPay(body: any, baseUrl: string) {
 
 // Função para gerar PIX via Umbrela
 async function generatePixUmbrela(body: any, baseUrl: string) {
+  const config = getConfig()
   const apiKey = config.umbrelaApiKey
   console.log("\n☂️ [Umbrela] Verificando autenticação:", apiKey ? "✓ Token presente" : "✗ Token ausente")
   console.log("🔧 [Umbrela] Config debug:", {
@@ -450,7 +451,8 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Escolher gateway baseado na variável de ambiente
+    // Ler configurações das env vars
+    const config = getConfig()
     const gateway = config.paymentGateway
     console.log("\n💳 [GATEWAY] Gateway selecionado:", gateway.toUpperCase())
     
