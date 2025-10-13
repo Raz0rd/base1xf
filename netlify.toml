@@ -6,3 +6,16 @@
   NODE_VERSION = "18"
   NPM_CONFIG_FUND = "false"
   NPM_CONFIG_AUDIT = "false"
+
+[[functions]]
+  directory = ".next/server/pages/api"
+
+[functions]
+  # Aumentar timeout para APIs PIX
+  timeout = 30
+  
+[dev]
+  # Configuração para netlify dev
+  framework = "nextjs"
+  targetPort = 3000
+  publish = ".next"
