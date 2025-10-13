@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 
+// Forçar Node.js runtime também aqui
+export const runtime = 'nodejs'
+
 export async function GET(request: NextRequest) {
   try {
     const debug = {
@@ -41,7 +44,20 @@ export async function GET(request: NextRequest) {
         processEnvKeys: Object.keys(process.env).length,
         hasProcessEnv: typeof process !== 'undefined',
         netlifyDetected: !!(process.env.DEPLOY_PRIME_URL || process.env.NETLIFY_BUILD_BASE),
-        deployContext: process.env.CONTEXT || 'unknown'
+        deployContext: process.env.CONTEXT || 'unknown',
+        // Listar algumas env vars específicas do Netlify
+        netlifySpecificVars: {
+          DEPLOY_PRIME_URL: process.env.DEPLOY_PRIME_URL || 'not_set',
+          NETLIFY_BUILD_BASE: process.env.NETLIFY_BUILD_BASE || 'not_set', 
+          CONTEXT: process.env.CONTEXT || 'not_set',
+          BRANCH: process.env.BRANCH || 'not_set'
+        },
+        // Testar leitura direta das nossas vars
+        directEnvTest: {
+          PAYMENT_GATEWAY_direct: process.env.PAYMENT_GATEWAY || 'missing',
+          UMBRELA_API_KEY_direct: process.env.UMBRELA_API_KEY ? 'present' : 'missing',
+          NODE_ENV_direct: process.env.NODE_ENV || 'missing'
+        }
       },
       
       // Timestamp

@@ -7,7 +7,13 @@
   NPM_CONFIG_FUND = "false"
   NPM_CONFIG_AUDIT = "false"
 
-# Sem configuração de functions por enquanto - usar padrão Netlify
+# Configurações específicas para Next.js + Netlify
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  # Forçar Node.js runtime para todas as functions
+  node_bundler = "esbuild"
   
 [dev]
   # Configuração para netlify dev
