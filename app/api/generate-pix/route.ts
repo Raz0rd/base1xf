@@ -355,55 +355,82 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
   console.log("🎯 [Umbrela] URL:", "https://api-gateway.umbrellapag.com/api/user/transactions")
   console.log("🔑 [Umbrela] API Key:", apiKey.substring(0, 10) + "...")
   
-  const response = await fetch("https://api-gateway.umbrellapag.com/api/user/transactions", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "User-Agent": "UMBRELLAB2B/1.0",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(umbrelaPayload),
-  })
+  // Salvar debug em storage para Netlify
+  const debugInfo = {
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    baseUrl,
+    hasApiKey: !!apiKey,
+    apiKeyLength: apiKey?.length || 0,
+    payloadSize: JSON.stringify(umbrelaPayload).length
+  }
+  
+  try {
+    const response = await fetch("https://api-gateway.umbrellapag.com/api/user/transactions", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "User-Agent": "UMBRELLAB2B/1.0",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(umbrelaPayload),
+    })
 
-  console.log("📡 [Umbrela] RESPONSE STATUS:", response.status)
-  console.log("📊 [Umbrela] RESPONSE HEADERS:", Object.fromEntries(response.headers.entries()))
+    console.log("📡 [Umbrela] RESPONSE STATUS:", response.status)
+    console.log("📊 [Umbrela] RESPONSE HEADERS:", Object.fromEntries(response.headers.entries()))
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error("❌ [Umbrela] ERROR RESPONSE:", {
-      status: response.status,
-      statusText: response.statusText,
-      body: errorText,
-      headers: Object.fromEntries(response.headers.entries())
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("❌ [Umbrela] ERROR RESPONSE:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      })
+      
+      // Retornar erro estruturado para debug no Netlify
+      return NextResponse.json({ 
+        error: "Erro na API Umbrela",
+        debug: {
+          ...debugInfo,
+          responseStatus: response.status,
+          responseBody: errorText,
+          apiUrl: "https://api-gateway.umbrellapag.com/api/user/transactions"
+        }
+      }, { status: 500 })
+    }
+
+    const data = await response.json()
+    console.log("✅ [Umbrela] SUCCESS RESPONSE:", JSON.stringify(data, null, 2))
+
+    // Extrair informações da resposta Umbrela
+    const transactionId = data.data?.id
+    const pixCode = data.data?.qrCode
+    const qrCodeImage = data.data?.qrCode // Umbrela retorna QR Code direto no texto
+    
+    console.log("🔍 [Umbrela] DADOS EXTRAÍDOS:", {
+      transactionId,
+      pixCode: pixCode ? `${pixCode.substring(0, 50)}...` : null,
+      status: data.data?.status
     })
     
-    throw new Error(`Erro na API de pagamento: ${response.status}`)
+    const normalizedResponse = {
+      ...data.data,
+      transactionId,
+      pixCode,
+      qrCode: qrCodeImage,
+      success: true
+    }
+    
+    console.log("🎉 [Umbrela] RESPOSTA NORMALIZADA:", JSON.stringify(normalizedResponse, null, 2))
+    return normalizedResponse
+    
+  } catch (networkError) {
+    console.error("❌ [Umbrela] NETWORK ERROR:", networkError)
+    
+    // Lançar erro para ser capturado pelo catch principal
+    throw new Error(`Erro de rede Umbrela: ${networkError instanceof Error ? networkError.message : 'Unknown error'}`)
   }
-
-  const data = await response.json()
-  console.log("✅ [Umbrela] SUCCESS RESPONSE:", JSON.stringify(data, null, 2))
-
-  // Extrair informações da resposta Umbrela
-  const transactionId = data.data?.id
-  const pixCode = data.data?.qrCode
-  const qrCodeImage = data.data?.qrCode // Umbrela retorna QR Code direto no texto
-  
-  console.log("🔍 [Umbrela] DADOS EXTRAÍDOS:", {
-    transactionId,
-    pixCode: pixCode ? `${pixCode.substring(0, 50)}...` : null,
-    status: data.data?.status
-  })
-
-  const normalizedResponse = {
-    ...data.data,
-    transactionId,
-    pixCode,
-    qrCode: qrCodeImage,
-    success: true
-  }
-  
-  console.log("🎉 [Umbrela] RESPOSTA NORMALIZADA:", JSON.stringify(normalizedResponse, null, 2))
-  return normalizedResponse
 }
 
 export async function POST(request: NextRequest) {
