@@ -36,6 +36,14 @@ export async function GET(request: NextRequest) {
         GHOSTPAY_API_KEY: process.env.GHOSTPAY_API_KEY ? `present_${process.env.GHOSTPAY_API_KEY.length}chars` : 'not_set'
       },
       
+      // Debug raw env access
+      rawEnvDebug: {
+        processEnvKeys: Object.keys(process.env).length,
+        hasProcessEnv: typeof process !== 'undefined',
+        netlifyDetected: !!(process.env.DEPLOY_PRIME_URL || process.env.NETLIFY_BUILD_BASE),
+        deployContext: process.env.CONTEXT || 'unknown'
+      },
+      
       // Timestamp
       timestamp: new Date().toISOString(),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone

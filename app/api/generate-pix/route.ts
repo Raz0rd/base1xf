@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { orderStorageService } from "@/lib/order-storage"
+import { config, getEnvVar } from "./config"
+
+// Forçar Node.js runtime
+export const runtime = 'nodejs'
 
 // Função para obter o IP real do cliente
 function getClientIp(req: NextRequest): string {
@@ -254,12 +258,23 @@ async function generatePixGhostPay(body: any, baseUrl: string) {
 
 // Função para gerar PIX via Umbrela
 async function generatePixUmbrela(body: any, baseUrl: string) {
-  const apiKey = process.env.UMBRELA_API_KEY
+  const apiKey = config.umbrelaApiKey
   console.log("\n☂️ [Umbrela] Verificando autenticação:", apiKey ? "✓ Token presente" : "✗ Token ausente")
+  console.log("🔧 [Umbrela] Config debug:", {
+    hasApiKey: !!apiKey,
+    keyLength: apiKey?.length || 0,
+    paymentGateway: config.paymentGateway,
+    isNetlify: config.isNetlify,
+    isProduction: config.isProduction
+  })
   
   if (!apiKey) {
     console.error("❌ [Umbrela] UMBRELA_API_KEY não configurado")
-    console.error("❌ [Umbrela] Variáveis disponíveis:", Object.keys(process.env).filter(key => key.includes('UMBRELA')))
+    console.error("❌ [Umbrela] Env vars debug:", {
+      processEnvKeys: Object.keys(process.env).length,
+      hasProcessEnv: typeof process !== 'undefined',
+      umbrelaDirect: process.env.UMBRELA_API_KEY ? 'present' : 'missing'
+    })
     throw new Error("UMBRELA_API_KEY não configurado no servidor")
   }
 
@@ -436,13 +451,18 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
 export async function POST(request: NextRequest) {
   try {
     // Escolher gateway baseado na variável de ambiente
-    const gateway = process.env.PAYMENT_GATEWAY || 'umbrela' // Default: umbrela
+    const gateway = config.paymentGateway
     console.log("\n💳 [GATEWAY] Gateway selecionado:", gateway.toUpperCase())
     
     // Debug de variáveis de ambiente
-    console.log("🔑 [ENV] PAYMENT_GATEWAY:", process.env.PAYMENT_GATEWAY)
-    console.log("🔑 [ENV] UMBRELA_API_KEY:", process.env.UMBRELA_API_KEY ? "✓ Presente" : "❌ Ausente")
-    console.log("🔑 [ENV] NODE_ENV:", process.env.NODE_ENV)
+    console.log("🔑 [ENV] PAYMENT_GATEWAY:", config.paymentGateway)
+    console.log("🔑 [ENV] UMBRELA_API_KEY:", config.umbrelaApiKey ? "✓ Presente" : "❌ Ausente")
+    console.log("🔑 [ENV] NODE_ENV:", getEnvVar('NODE_ENV'))
+    console.log("🔧 [CONFIG] Debug completo:", {
+      isNetlify: config.isNetlify,
+      isProduction: config.isProduction,
+      hasUmbrelaKey: !!config.umbrelaApiKey
+    })
     
     const body = await request.json()
     
