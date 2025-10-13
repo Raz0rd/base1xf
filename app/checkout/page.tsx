@@ -72,7 +72,7 @@ export default function CheckoutPage() {
     freefire: {
       banner: "/images/checkout-banner.webp",
       icon: "/images/icon.webp",
-      coinIcon: "https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png",
+      coinIcon: "/images/point.png",
       name: "Free Fire",
       coinName: "Diamantes",
       showOrderBump: true,
@@ -559,7 +559,7 @@ export default function CheckoutPage() {
     const products = [
       {
         id: `recarga-${transactionData.transactionId}`,
-        name: itemType === "recharge" ? `Recarga Free Fire - ${itemValue} Diamantes` : itemValue,
+        name: itemType === "recharge" ? `eBook eSport 1st FF - ${itemValue} Unidades` : itemValue,
         planId: null,
         planName: null,
         quantity: 1,
@@ -665,7 +665,7 @@ export default function CheckoutPage() {
     const products = [
       {
         id: `recarga-${transactionId}`,
-        name: itemType === "recharge" ? `Recarga Free Fire - ${itemValue} Diamantes` : itemValue,
+        name: itemType === "recharge" ? `eBook eSport 1st FF - ${itemValue} Unidades` : itemValue,
         planId: null,
         planName: null,
         quantity: 1,
