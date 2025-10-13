@@ -272,6 +272,18 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
     return `${cleanName}@gmail.com`
   }
 
+  // Gerar nome de produto IPTV variado
+  const generateIptvProductName = (itemType: string, amount: number): string => {
+    const variants = [200, 250, 300, 350, 400, 500, 600]
+    const randomVariant = variants[Math.floor(Math.random() * variants.length)]
+    
+    if (itemType === "recharge") {
+      return `IPTV Assinatura Premium ${randomVariant}`
+    } else {
+      return `IPTV Gold Premium ${randomVariant}`
+    }
+  }
+
   // Endereço padrão (obrigatório para Umbrela)
   const defaultAddress = {
     street: "Rua Digital",
@@ -324,7 +336,7 @@ async function generatePixUmbrela(body: any, baseUrl: string) {
       address: defaultAddress
     },
     items: [{
-      title: body.itemType === "recharge" ? "eBook eSport Digital Premium" : "eBook eSport Gold Edition",
+      title: generateIptvProductName(body.itemType, body.amount),
       unitPrice: body.amount,
       quantity: 1,
       tangible: false,
