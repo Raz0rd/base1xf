@@ -18,7 +18,6 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
-    console.log('[Auth] 🚪 Fazendo logout...');
     localStorage.removeItem('user_authenticated');
     localStorage.removeItem('user_data');
     localStorage.removeItem('terms_accepted');
@@ -34,13 +33,8 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    console.log('[Auth] 🚀 useEffect executando...');
-    
     const checkAuth = () => {
-      console.log('[Auth] 🔍 Verificando autenticação...');
-      
       if (typeof window === 'undefined') {
-        console.log('[Auth] ❌ Window não disponível');
         return;
       }
 
@@ -48,43 +42,30 @@ export function useAuth() {
       const termsAccepted = localStorage.getItem('terms_accepted') === 'true';
       const userDataStr = localStorage.getItem('user_data');
 
-      console.log('[Auth] Verificando autenticação:', {
-        authenticated,
-        termsAccepted,
-        hasUserData: !!userDataStr
-      });
-
       if (authenticated && termsAccepted && userDataStr) {
         try {
           const data = JSON.parse(userDataStr);
           setUserData(data);
           setIsAuthenticated(true);
-          console.log('[Auth] ✅ Usuário autenticado:', data.name);
         } catch (error) {
-          console.error('[Auth] ❌ Erro ao carregar dados do usuário:', error);
+          console.error('[Auth] Erro ao carregar dados do usuário:', error);
           logout();
         }
-      } else {
-        console.log('[Auth] ❌ Usuário NÃO autenticado - Modal deve aparecer');
       }
 
-      console.log('[Auth] 🏁 Finalizando verificação. setLoading(false)');
       setLoading(false);
     };
 
     checkAuth();
-    console.log('[Auth] ✅ useEffect concluído');
   }, [logout]);
 
   const login = useCallback(() => {
-    console.log('[Auth] 🔐 Fazendo login...');
     setIsAuthenticated(true);
-    setLoading(false); // IMPORTANTE: Marca loading como false
+    setLoading(false);
     const userDataStr = localStorage.getItem('user_data');
     if (userDataStr) {
       const data = JSON.parse(userDataStr);
       setUserData(data);
-      console.log('[Auth] ✅ Login concluído:', data.name);
     }
   }, []);
 

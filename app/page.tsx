@@ -147,25 +147,20 @@ export default function HomePage() {
       const storedUserData = localStorage.getItem('userData')
       const userAuthenticated = localStorage.getItem('user_authenticated')
       
-      console.log('[HomePage] Verificando login:', { hasUserData: !!storedUserData, userAuthenticated })
-      
       if (storedUserData && userAuthenticated === 'true') {
         try {
           const userData = JSON.parse(storedUserData)
-          console.log('[HomePage] Dados do usuário encontrados:', userData)
           
           // Verificar se não é o usuário "LOGADO" (inválido)
           if (userData.nickname && userData.nickname !== 'LOGADO') {
-            console.log('[HomePage] ✅ Usuário válido logado:', userData.nickname)
             setIsLoggedIn(true)
             setUserData(userData)
             
-            // Buscar avatar se existir
+            // Carregar avatar se existir
             if (userData.headPic) {
               await fetchAvatarInfo(userData.headPic)
             }
           } else {
-            console.log('[HomePage] ❌ Usuário inválido, fazendo logout')
             // Limpar dados inválidos
             localStorage.removeItem('userData')
             localStorage.removeItem('user_authenticated')
@@ -178,7 +173,6 @@ export default function HomePage() {
           setUserData(null)
         }
       } else {
-        console.log('[HomePage] Usuário não autenticado')
         setIsLoggedIn(false)
         setUserData(null)
       }

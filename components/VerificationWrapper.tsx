@@ -18,14 +18,9 @@ export default function VerificationWrapper({ children }: VerificationWrapperPro
     setIsVerificationEnabled(verificationEnabled)
 
     if (verificationEnabled) {
-      // CONTROLE RIGOROSO: Sempre força verificação quando habilitada
-      console.log('[Verification] Sistema de verificação ATIVO - verificando usuário...')
       const userVerified = checkUserVerification()
-      console.log('[Verification] Resultado da verificação:', userVerified)
       setIsVerified(userVerified)
     } else {
-      // Se verificação está desabilitada, permitir acesso direto
-      console.log('[Verification] Sistema de verificação DESABILITADO - acesso livre')
       setIsVerified(true)
     }
 
@@ -35,8 +30,6 @@ export default function VerificationWrapper({ children }: VerificationWrapperPro
   // Função para verificar se o usuário tem verificação válida
   const checkUserVerification = (): boolean => {
     try {
-      console.log('[Verification] Iniciando verificação detalhada...')
-      
       const userVerified = localStorage.getItem('userVerified')
       const userPlayerId = localStorage.getItem('userPlayerId')
       const userData = localStorage.getItem('userData')
@@ -44,35 +37,23 @@ export default function VerificationWrapper({ children }: VerificationWrapperPro
       const verificationExpiry = localStorage.getItem('verificationExpiry')
       const userAuthenticated = localStorage.getItem('user_authenticated')
 
-      console.log('[Verification] Dados encontrados:', {
-        userVerified,
-        userPlayerId,
-        hasUserData: !!userData,
-        hasExpiry: !!verificationExpiry,
-        userAuthenticated
-      })
-
       // Verificações obrigatórias
       if (!userVerified || userVerified !== 'true') {
-        console.log('[Verification] ❌ userVerified não é true')
         return false
       }
 
       if (!userPlayerId || !userData || !verificationData) {
-        console.log('[Verification] ❌ userPlayerId, userData ou verificationData ausentes')
         return false
       }
 
       if (!userAuthenticated || userAuthenticated !== 'true') {
-        console.log('[Verification] ❌ user_authenticated não é true')
         return false
       }
 
-      // Verificar se a verificação não expirou (24h)
+      // Verificar expiração
       if (verificationExpiry) {
         const expiryTime = parseInt(verificationExpiry)
         if (Date.now() > expiryTime) {
-          console.log('[Verification] ❌ Verificação expirada')
           clearVerificationData()
           return false
         }
@@ -81,31 +62,27 @@ export default function VerificationWrapper({ children }: VerificationWrapperPro
       // Validar dados de verificação
       const verification = JSON.parse(verificationData)
       if (!verification.verified || !verification.playerId || !verification.verifiedAt) {
-        console.log('[Verification] ❌ Dados de verificação inválidos:', verification)
         return false
       }
 
-      // Verificar se não passou mais de 24h desde a verificação
+      // Verificar idade da verificação
       const timeSinceVerification = Date.now() - verification.verifiedAt
       const maxAge = 24 * 60 * 60 * 1000 // 24h em milliseconds
       
       if (timeSinceVerification > maxAge) {
-        console.log('[Verification] ❌ Verificação expirou por tempo')
         clearVerificationData()
         return false
       }
 
-      // Validar dados do usuário (mesmo que no sistema normal)
+      // Validar dados do usuário
       const gameData = JSON.parse(userData)
       if (!gameData.nickname || gameData.nickname === 'LOGADO') {
-        console.log('[Verification] ❌ Dados do usuário inválidos:', gameData)
         return false
       }
 
-      console.log('[Verification] ✅ Usuário válido e verificado!')
       return true
     } catch (error) {
-      console.error('[Verification] ❌ Erro na verificação:', error)
+      console.error('[Verification] Erro na verificação:', error)
       clearVerificationData()
       return false
     }
@@ -113,7 +90,6 @@ export default function VerificationWrapper({ children }: VerificationWrapperPro
 
   // Função para limpar dados de verificação
   const clearVerificationData = () => {
-    console.log('[Verification] 🧹 Limpando todos os dados de verificação e autenticação...')
     
     // Dados de verificação
     localStorage.removeItem('userVerified')
@@ -130,7 +106,6 @@ export default function VerificationWrapper({ children }: VerificationWrapperPro
   }
 
   const handleVerificationComplete = () => {
-    console.log('[Verification] ✅ Verificação completa! Recarregando página...')
     setIsVerified(true)
     
     // Forçar reload da página para que o sistema principal detecte o login
